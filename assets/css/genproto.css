@@ -1,0 +1,118 @@
+/* Copyright 1998-2015 Northwoods Software Corporation. All Rights Reserved. */
+
+body {
+  /*font-family: sans-serif;*/
+  font-family: cursive;
+  font-size: 13px;
+}
+
+p {
+  max-width: 700px;
+}
+
+p.box {
+  border: 1px solid #BBB;
+  padding: 4px 4px 6px 4px;
+}
+
+p.warning {
+  background-color: #FCD5CD
+}
+
+.diagramContainer {
+  border : solid 1px blue;
+}
+pre {
+  font-size : 9pt;
+}
+
+input{
+  display: block;
+  width: 80%;
+  min-width: 120px;
+  background: #ffffff;
+  border: 1px solid #cccccc;
+  padding: 5px 10px;
+  vertical-align: middle;
+  outline: none;
+  border-radius: 4px;
+  -webkit-border-radius: 4px;
+  -webkit-transition: border linear 0.4s, box-shadow linear 0.4s;
+}
+
+select{
+  display: block;
+  width: 80%;
+  min-width: 120px;
+  background: #ffffff;
+  border: 1px solid #cccccc;
+  padding: 5px 10px;
+  vertical-align: middle;
+  outline: none;
+  border-radius: 4px;
+  -webkit-border-radius: 4px;
+  -webkit-transition: border linear 0.4s, box-shadow linear 0.4s;  
+}
+
+.footer {
+  text-align: right;
+  font-size: 10px;
+}
+
+/* new: */
+
+a { text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+a li { color: #0645AD; }
+a li:hover, a li:focus { background: #CEDFF2; }
+a li.selected { background: #1E90FF; color: white }
+
+
+.index {
+  margin-top: 0px;
+}
+
+#infoBoxHolder {
+  z-index: 300;
+  position: absolute;
+  left: 5px;
+}
+
+#infoBox {
+  border: 1px solid #999;
+  padding: 8px;
+  background-color: whitesmoke;
+  opacity:0.9;
+  position: relative;
+  width: 170px;
+  //height: 60px;
+  font-family: arial, helvetica, sans-serif;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+/* this is known as the "clearfix" hack to allow
+   floated objects to add to the height of a div */
+#infoBox:after {
+  visibility: hidden;
+  display: block;
+  font-size: 0;
+  content: " ";
+  clear: both;
+  height: 0;
+}
+
+div.infoTitle {
+  width: 100px;
+  font-weight: normal;
+  color:  #787878;
+  float: left;
+  margin-left: 4px;
+}
+
+div.infoValues {
+  width: 30px;
+  text-align: right;
+  float: right;
+}

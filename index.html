@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>连连看</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script src="go.js"></script>
+<link href="./assets/css/genproto.css" rel="stylesheet" type="text/css" /> 
+<script src="genproto.js"></script>  
+<script id="code">
+
+  var lastStroked = null;  // this remembers the last highlit Shape
+
+  function init() {
+    if (window.genProto) genProto();  // init for these samples -- you don't need to call this
+    var $ = go.GraphObject.make;  // for conciseness in defining templates
+
+    myDiagram =
+      $(go.Diagram, "myDiagram",  // must name or refer to the DIV HTML element
+        {
+          initialContentAlignment: go.Spot.Center,
+          allowDrop: true,  // must be true to accept drops from the Palette
+          "toolManager.mouseWheelBehavior": go.ToolManager.WheelZoom, // enable mouse wheel event
+          "LinkDrawn": showLinkLabel,  // this DiagramEvent listener is defined below
+          "LinkRelinked": showLinkLabel,
+          "animationManager.duration": 800, // slightly longer than default (600ms) animation
+          "ChangedSelection": onSelectionChanged,
+          "TextEdited": onTextEdited,
+          mouseOver: doMouseOver, 
+          "undoManager.isEnabled": true  // enable undo & redo
+        });
+
+    // when the document is modified, add a "*" to the title and enable the "Save" button
+    myDiagram.addDiagramListener("Modified", function(e) {
+      var button = document.getElementById("SaveButton");
+      if (button) button.disabled = !myDiagram.isModified;
+      var idx = document.title.indexOf("*");
+      if (myDiagram.isModified) {
+        if (idx < 0) document.title += "*";
+      } else {
+        if (idx >= 0) document.title = document.title.substr(0, idx);
+      }
+    });
+
+    // helper definitions for node templates
+
+    function nodeStyle() {
+      return [
+        // The Node.location comes from the "loc" property of the node data,
+        // converted by the Point.parse static method.
+        // If the Node.location is changed, it updates the "loc" property of the node data,
+        // converting back using the Point.stringify static method.
+        new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
+        {
+          // the Node.location is at the center of each node
+          locationSpot: go.Spot.Center,
+          //isShadowed: true,
+          //shadowColor: "#888",
+          // handle mouse enter/leave events to show/hide the ports
+          mouseEnter: function (e, obj) { showPorts(obj.part, true); },
+          mouseLeave: function (e, obj) { showPorts(obj.part, false); }
+        }
+      ];
+    }
+
+    // Define a function for creating a "port" that is normally transparent.
+    // The "name" is used as the GraphObject.portId, the "spot" is used to control how links connect
+    // and where the port is positioned on the node, and the boolean "output" and "input" arguments
+    // control whether the user can draw links from or to the port.
+    function makePort(name, spot, output, input) {
+      // the port is basically just a small circle that has a white stroke when it is made visible
+      return $(go.Shape, "Circle",
+               {
+                  fill: "transparent",
+                  stroke: null,  // this is changed to "white" in the showPorts function
+                  desiredSize: new go.Size(8, 8),
+                  alignment: spot, alignmentFocus: spot,  // align the port on the main Shape
+                  portId: name,  // declare this object to be a "port"
+                  fromSpot: spot, toSpot: spot,  // declare where links may connect at this port
+                  fromLinkable: output, toLinkable: input,  // declare whether the user may draw links to/from here
+                  cursor: "pointer"  // show a different cursor to indicate potential link point
+               });
+    }
+
+
+    function textStyle() {
+      return { font: "bold 11pt Helvetica, Arial, sans-serif", stroke: "white" };
+    }
+
+    //////////////////////////////// BEGIN: MOUSEOVER /////////////////////////////////
+    function doMouseOver(e) {
+      if (e === undefined) e = myDiagram.lastInput;
+      var doc = e.documentPoint;
+      // find all Nodes that are within 100 units
+      var list = myDiagram.findObjectsNear(doc, 100, null, function(x) { return x instanceof go.Node; });
+      // now find the one that is closest to e.documentPoint
+      var closest = null;
+      var closestDist = 999999999;
+      list.each(function(node) {
+        var dist = doc.distanceSquaredPoint(node.getDocumentPoint(go.Spot.Center));
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = node;
+        }
+      });
+      highlightNode(e, closest);
+    }
+
+    // Called with a Node (or null) that the mouse is over or near
+    function highlightNode(e, node) {
+      if (node !== null) {
+        var shape = node.findObject("SHAPE");
+        shape.stroke = "gray";
+        if (lastStroked !== null && lastStroked !== shape) lastStroked.stroke = null;
+        lastStroked = shape;
+        updateInfoBox(e.viewPoint, node.data);
+      } else {
+        if (lastStroked !== null) lastStroked.stroke = null;
+        lastStroked = null;
+        document.getElementById("infoBoxHolder").innerHTML = "";
+      }
+    }
+
+    var diagramDiv = document.getElementById("myDiagram");
+    // Make sure the infoBox is hidden when the mouse is not over the Diagram
+    diagramDiv.addEventListener("mouseout", function(e) {
+      if (lastStroked !== null) lastStroked.stroke = null;
+      lastStroked = null;
+
+      var infoBox = document.getElementById("infoBox");
+      var elem = document.elementFromPoint(e.clientX, e.clientY);
+      if (elem === infoBox || elem.parentNode === infoBox) {
+        var box = document.getElementById("infoBoxHolder");
+        box.style.left = parseInt(box.style.left) + "px";
+        box.style.top = parseInt(box.style.top)+30 + "px";
+      } else {
+        var box = document.getElementById("infoBoxHolder");
+        box.innerHTML = "";
+      }
+    }, false);
+
+    // This function is called to update the tooltip information
+    // depending on the bound data of the Node that is closest to the pointer.
+    function updateInfoBox(mousePt, data) {
+      var box = document.getElementById("infoBoxHolder");
+      if (data.category == "CONVOLUTION") {
+        var x =
+        "<div id='infoBox'>" +
+        "<div>" + data.name;
+        var str_num_output = "";
+        var str_kernel_size = " ";
+        var str_map_size = " ";
+        if (data.num_output) {
+          str_num_output += ":" + data.num_output;
+        }
+        if (data.kernel_size) {
+          str_kernel_size += data.kernel_size+"*"+data.kernel_size + "filters";
+        }
+        if (data._map_hsize && data._map_wsize) {
+          str_map_size += "@" + data._map_hsize+"*"+data._map_wsize
+        }
+        x +=  str_num_output + str_kernel_size + str_map_size + "</div></div>";           
+
+        box.innerHTML = x;
+        box.style.left = mousePt.x+300 + "px";
+        box.style.top = mousePt.y+ 70 + "px";
+      }
+      else {
+        box.innerHTML = "";
+      }
+    }
+    //////////////////////////////// END /////////////////////////////////
+
+    // define the Node templates for regular nodes
+
+    var lightText = 'black';
+
+    myDiagram.nodeTemplateMap.add("",  // the default category
+      $(go.Node, "Spot", nodeStyle(),
+        // the main object is a Panel that surrounds a TextBlock with a rectangular Shape
+        $(go.Panel, "Auto",
+          $(go.Shape, "RoundedRectangle",
+            { name: "SHAPE", strokeWidth: 3, fill: "#6797eb", stroke: null },
+            new go.Binding("figure", "figure")),
+          $(go.TextBlock,
+            {
+              font: "bold 11pt Helvetica, Arial, sans-serif",
+              stroke: lightText,
+              margin: 8,
+              maxSize: new go.Size(160, NaN),
+              wrap: go.TextBlock.WrapFit,
+              editable: true,
+              isMultiline: false
+            },
+            new go.Binding("text", "name").makeTwoWay())
+        ),
+        // four named ports, one on each side:
+        makePort("T", go.Spot.Top, true, false),
+        makePort("L", go.Spot.Left, true, true),
+        makePort("R", go.Spot.Right, true, true),
+        makePort("B", go.Spot.Bottom, false, true)
+      ));
+
+    myDiagram.nodeTemplateMap.add("BLOB",  // the default category
+      $(go.Node, "Spot", nodeStyle(),
+        // the main object is a Panel that surrounds a TextBlock with a rectangular Shape
+        $(go.Panel, "Auto",
+          $(go.Shape, "Ellipse",
+            { name: "SHAPE", strokeWidth: 3, fill: "#f0e691", stroke: null },
+            new go.Binding("figure", "figure")),
+          $(go.TextBlock,
+            {
+              font: "bold 11pt Helvetica, Arial, sans-serif",
+              stroke: lightText,
+              margin: 8,
+              maxSize: new go.Size(160, NaN),
+              wrap: go.TextBlock.WrapFit,
+              editable: true,
+              isMultiline: false
+            },
+            new go.Binding("text", "name").makeTwoWay())
+        ),
+        // four named ports, one on each side:
+        makePort("T", go.Spot.Top, true, false),
+        makePort("L", go.Spot.Left, true, true),
+        makePort("R", go.Spot.Right, true, true),
+        makePort("B", go.Spot.Bottom, false, true)
+      ));
+
+    // replace the default Link template in the linkTemplateMap
+    myDiagram.linkTemplate =
+      $(go.Link,  // the whole link panel
+        {
+          routing: go.Link.AvoidsNodes,
+          curve: go.Link.JumpOver,
+          corner: 5, toShortLength: 4,
+          relinkableFrom: true,
+          relinkableTo: true,
+          reshapable: true
+        },
+        new go.Binding("points").makeTwoWay(),
+        $(go.Shape,  // the link path shape
+          { isPanelMain: true, stroke: "gray", strokeWidth: 2 }),
+        $(go.Shape,  // the arrowhead
+          { toArrow: "standard", stroke: null, fill: "gray"}),
+        $(go.Panel, "Auto",  // the link label, normally not visible
+          { visible: false, name: "LABEL", segmentIndex: 2, segmentFraction: 0.5},
+          new go.Binding("visible", "visible").makeTwoWay(),
+          $(go.Shape, "RoundedRectangle",  // the label shape
+            { fill: "#F8F8F8", stroke: null }),
+          $(go.TextBlock, "Yes",  // the label
+            {
+              textAlign: "center",
+              font: "10pt helvetica, arial, sans-serif",
+              stroke: "#333333",
+              editable: true
+            },
+            new go.Binding("text", "text").makeTwoWay())
+        )
+      );
+
+    // Make link labels visible if coming out of a "conditional" node.
+    // This listener is called by the "LinkDrawn" and "LinkRelinked" DiagramEvents.
+    function showLinkLabel(e) {
+      var label = e.subject.findObject("LABEL");
+      if (label !== null) label.visible = (e.subject.fromNode.data.figure === "Diamond");
+    }
+
+    // temporary links used by LinkingTool and RelinkingTool are also orthogonal:
+    myDiagram.toolManager.linkingTool.temporaryLink.routing = go.Link.Orthogonal;
+    myDiagram.toolManager.relinkingTool.temporaryLink.routing = go.Link.Orthogonal;
+
+    load();  // load an initial diagram from some JSON text
+
+    // initialize the Palette that is on the left side of the page
+    BlobPalette =
+      $(go.Palette, "BLOB",  // must name or refer to the DIV HTML element
+        {
+          "animationManager.duration": 800, // slightly longer than default (600ms) animation
+          nodeTemplateMap: myDiagram.nodeTemplateMap,  // share the templates used by myDiagram
+          model: new go.GraphLinksModel([  // specify the contents of the Palette
+            { category: "BLOB",name: "Blob", figure: "Ellipse"},
+          ])
+        });
+
+
+    myPalette =
+      $(go.Palette, "myPalette",  // must name or refer to the DIV HTML element
+        {
+          "animationManager.duration": 800, // slightly longer than default (600ms) animation
+          nodeTemplateMap: myDiagram.nodeTemplateMap,  // share the templates used by myDiagram
+          model: new go.GraphLinksModel([  // specify the contents of the Palette
+            { name: "DATA" , category: "DATA"},
+            { name: "RAW_DATA" , category: "RAW_DATA"},
+            { name: "IMAGE_DATA" , category: "IMAGE_DATA"},
+            { name: "DUMMY_DATA" , category: "DUMMY_DATA"},
+            { name: "MEMORY_DATA", category: "MEMORY_DATA" },
+            { name: "PAIR_DATA" , category: "PAIR_DATA"},
+          ])
+        });
+
+    myPalette1 =
+      $(go.Palette, "myPalette1",  // must name or refer to the DIV HTML element
+        {
+          "animationManager.duration": 800, // slightly longer than default (600ms) animation
+          nodeTemplateMap: myDiagram.nodeTemplateMap,  // share the templates used by myDiagram
+          model: new go.GraphLinksModel([  // specify the contents of the Palette
+            { name: "CONVOLUTION", category: "CONVOLUTION" },
+            { name: "POOLING", category: "POOLING" },
+            { name: "SOFTMAX_LOSS", category: "SOFTMAX_LOSS" },
+            { name: "ACCURACY", category: "ACCURACY" },
+            { name: "RELU", category: "RELU" },
+            { name: "SIDMOID", category: "SIDMOID" },
+            { name: "DROPOUT", category: "DROPOUT" },
+            { name: "CONCAT", category: "CONCAT" },
+            { name: "BN", category: "BN" },
+          ])
+        });
+
+  }
+
+  // Make all ports on a node visible when the mouse is over the node
+  function showPorts(node, show) {
+    var diagram = node.diagram;
+    if (!diagram || diagram.isReadOnly || !diagram.allowLink) return;
+    node.ports.each(function(port) {
+        port.stroke = (show ? "white" : null);
+      });
+  }
+
+////////////////////////new added///////////////////////////
+  // Allow the user to edit text when a single node is selected
+  function onSelectionChanged(e) {
+    var node = e.diagram.selection.first();
+    if (node instanceof go.Node) {
+      updateProperties(node.data);
+    } else {
+      updateProperties(null);
+    }
+  }
+
+
+  function appendNodes(parentdiv, param) {
+      var tr = document.createElement('tr');
+      var label_td = document.createElement('td');
+      var content_td = document.createElement('td');
+      label_td.innerHTML = param + ":";
+      var input = document.createElement('input');
+      input.setAttribute("type", "text");
+      input.setAttribute("id",param);
+      input.setAttribute("onchange", "updateData(this.value, '"+param+"')");
+      content_td.appendChild(input);
+      tr.appendChild(label_td);
+      tr.appendChild(content_td);
+      parentdiv.appendChild(tr);
+  }
+
+  function apppendSelectNodes(parentdiv, param) {
+      var tr = document.createElement('tr');
+      var label_td = document.createElement('td');
+      var content_td = document.createElement('td');
+      label_td.innerHTML = param + ":";
+      var select = document.createElement('select');
+      select.setAttribute("id",param);
+      select.setAttribute("onchange", "updateData(this.value, '"+param+"')");
+      var option0 = document.createElement('option');
+      option0.setAttribute("value", "");
+      option0.innerHTML="";
+      var option1 = document.createElement('option');
+      option1.setAttribute("value", "TRAIN");
+      option1.innerHTML="TRAIN";
+      var option2 = document.createElement('VALUE');
+      option2.setAttribute("value", "TEST");
+      option2.innerHTML="TEST";
+      select.appendChild(option0);
+      select.appendChild(option1);
+      select.appendChild(option2);
+      content_td.appendChild(select);
+      tr.appendChild(label_td);
+      tr.appendChild(content_td);
+      parentdiv.appendChild(tr);    
+  }
+
+  function appendFillerNodes(parentdiv, param) {
+      var tr0 = document.createElement('tr');
+      var label_td0 = document.createElement('td');
+      label_td0.innerHTML = param;
+      tr0.appendChild(label_td0);
+      parentdiv.appendChild(tr0);
+
+      var tr = document.createElement('tr');
+      var label_td = document.createElement('td');
+      var content_td = document.createElement('td');
+      var select = document.createElement('select');
+      label_td.innerHTML = "type: ";
+      label_td.setAttribute("style", "float:right");
+      select.setAttribute("id",param+"_type");
+      select.setAttribute("onchange", "updateData(this.value, '"+param+"_type')");
+      var option0 = document.createElement('option');
+      option0.setAttribute("value", "");
+      option0.innerHTML="";
+      var option1 = document.createElement('option');
+      option1.setAttribute("value", "constant");
+      option1.innerHTML="constant";
+      var option2 = document.createElement('option');
+      option2.setAttribute("value", "xavier");
+      option2.innerHTML="xavier";
+      var option3 = document.createElement('option');
+      option3.setAttribute("value", "uniform");
+      option3.innerHTML="uniform";
+      var option4 = document.createElement('option');
+      option4.setAttribute("value", "gaussian");
+      option4.innerHTML="gaussian";
+      select.appendChild(option0);
+      select.appendChild(option1);
+      select.appendChild(option2);
+      select.appendChild(option3);
+      select.appendChild(option4);
+      content_td.appendChild(select);
+      tr.appendChild(label_td);
+      tr.appendChild(content_td);
+      parentdiv.appendChild(tr);
+
+      for (var i = 0; i < _filler_info.length; ++i) {
+        var tr1 = document.createElement('tr');
+        var label_td1 = document.createElement('td');
+        var content_td1 = document.createElement('td');      
+        //label_td1.innerHTML = "value: ";
+        label_td1.innerHTML = _filler_info[i]+":";
+        label_td1.setAttribute("style", "float:right;");
+        var input1 = document.createElement('input');
+        input1.setAttribute("type", "text");
+        input1.setAttribute("id",param+"_"+_filler_info[i]);
+        input1.setAttribute("onchange", "updateData(this.value, '"+param+"_"+_filler_info[i]+"')");
+        content_td1.appendChild(input1);
+        tr1.appendChild(label_td1);
+        tr1.appendChild(content_td1);
+        tr1.setAttribute("style","display:none;");
+        parentdiv.appendChild(tr1);
+      }
+  }
+
+  function appendParameters(param_list, category) {
+    var parentdiv = document.getElementById("propertiesTable");
+    // remove all elements except 'name'
+    var childnode_list = parentdiv.childNodes; 
+    var childnode_num = childnode_list.length;
+    //console.log(childnode_list);
+    var child_start = 2;
+    for (var i = child_start; i < childnode_num; ++i) {
+      parentdiv.removeChild(childnode_list[child_start]);
+    }
+    // append new elements 
+    if (category != "BLOB") {
+      apppendSelectNodes(parentdiv, "phase");
+    }
+    if (param_list) {
+      var param_num = param_list.length;
+      for (var i = 0; i < param_num; ++i) {
+        if (param_list[i] == "weight_filler" || param_list[i] == "bias_filler" ||
+            param_list[i] == "scale_filler" || param_list[i] == "shift_filler" || param_list[i] == "data_filler") {
+          appendFillerNodes(parentdiv, param_list[i]);      
+        }
+        else if (param_list[i].search("filler") >= 0) {
+          continue;
+        }
+        else {
+          appendNodes(parentdiv, param_list[i]);
+        }
+      }
+    }
+  }
+
+  function get_param_list(_raw_param) {
+    var param_list = [];
+    if (_raw_param) {        
+      var _param = _raw_param[0];
+      //console.log(_param);
+      for (var _key_param in _param) {
+        var obj_list = _param[_key_param];
+        for (var i = 0; i < obj_list.length; ++i) {
+          for (_key_obj in obj_list[i]) {
+            param_list.push(_key_obj);
+            if (_key_obj == "weight_filler" || _key_obj == "bias_filler"
+               || _key_obj == "scale_filler" || _key_obj == "shift_filler"
+               || _key_obj == "data_filler") {
+              param_list.push(_key_obj+"_type");
+              for (var j = 0;j < _filler_info.length; ++j) {
+                param_list.push(_key_obj+"_"+_filler_info[j]);
+              }
+            }
+          }
+        }
+      }
+    }
+    return param_list;
+  }
+
+  function get_param_default(_raw_param) {
+    var param_default = {};
+    if (_raw_param) {        
+      var _param = _raw_param[0];
+      //console.log(_param);
+      for (var _key_param in _param) {
+        var obj_list = _param[_key_param];
+        for (var i = 0; i < obj_list.length; ++i) {
+          for (_key_obj in obj_list[i]) {
+            param_default[_key_obj] = obj_list[i][_key_obj];
+          }
+        }
+      }
+    }
+    return param_default;
+  }
+
+  function show_network_filler(data, type, param) {
+    // restore
+    for (var i = 0; i < _filler_info.length; ++i) {
+      document.getElementById(param + "_" + _filler_info[i]).parentNode.parentNode.setAttribute("style", "display:none;");
+    }
+    // display by selection
+    if (type == "constant") {
+      if (param == "scale_filler") {
+        document.getElementById(param + "_value").value = data[param+"_value"] || 1;
+      } else {
+        document.getElementById(param + "_value").value = data[param+"_value"] || 0;
+      }
+      document.getElementById(param + "_value").parentNode.parentNode.setAttribute("style", "");
+    } else if (type == "uniform") {
+      document.getElementById(param + "_min").value = data[param+"_min"] || 0;
+      document.getElementById(param + "_min").parentNode.parentNode.setAttribute("style", "");
+      document.getElementById(param + "_max").value = data[param+"_max"] || 1;
+      document.getElementById(param + "_max").parentNode.parentNode.setAttribute("style", "");
+    } else if (type == "gaussian") {
+      document.getElementById(param + "_mean").value = data[param+"_mean"] || 0;
+      document.getElementById(param + "_mean").parentNode.parentNode.setAttribute("style", "");
+      document.getElementById(param + "_std").value = data[param+"_std"] || 1;
+      document.getElementById(param + "_std").parentNode.parentNode.setAttribute("style", "");
+    }
+  }
+
+  // Update the HTML elements for editing the properties of the currently selected node, if any
+  function updateProperties(data) {
+    if (data === null) {
+      document.getElementById("propertiesPanel").style.display = "none";
+    } else {
+      var category = data.category;
+      var param_list = get_param_list(_layers[category]);
+      var param_default = get_param_default(_layers[category]);
+      //document.getElementById("propertiesPanel").style.display = "block";
+      // append div element
+      appendParameters(param_list, category);
+      // update value
+      document.getElementById("name").value = data.name || "";
+      document.getElementById("category").value = data.category || "";
+      if (category != "BLOB") {
+        document.getElementById("phase").value = data.phase || "";
+      }
+      if (param_list) {  
+        var param_num = param_list.length;
+        for (var i = 0; i < param_num; ++i) {
+          if (param_list[i].search("filler") < 0) {
+            document.getElementById(param_list[i]).value = eval('data.'+param_list[i]) || "";
+          } else {
+            // filler default setting
+            //console.log(data["weight_filler_type"]);
+            if (param_list[i] == "weight_filler") {
+              if (!data[param_list[i]+"_type"]) {
+                // initialize
+                data[param_list[i]] = "default";
+                data[param_list[i]+"_type"] = "xavier";
+              }
+              document.getElementById(param_list[i] + "_type").value = data[param_list[i]+"_type"] || "xavier";
+              show_network_filler(data, document.getElementById(param_list[i] + "_type").value, param_list[i]);
+            } else if (param_list[i] == "bias_filler" || 
+                       param_list[i] == "scale_filler" ||
+                       param_list[i] == "shift_filler" ||
+                       param_list[i] == "data_filler" ) {
+              if (!data[param_list[i]+"_type"]) {
+                // initialize
+                data[param_list[i]] = "default";
+                data[param_list[i]+"_type"] = "constant";
+              }
+              document.getElementById(param_list[i] + "_type").value = data[param_list[i]+"_type"] || "constant";
+              show_network_filler(data, document.getElementById(param_list[i] + "_type").value, param_list[i]);
+            }
+          }
+          
+          //console.log('data.'+param_list[i]);
+        }
+      }
+      if (param_default) {  
+        for (var _key_param in param_default) {
+          if (document.getElementById(_key_param)) {
+            document.getElementById(_key_param).placeholder = param_default[_key_param];
+          }
+          //console.log('data.'+param_list[i]);
+        }
+      }
+      document.getElementById("propertiesPanel").style.display = "block";
+    }
+  }
+
+  // This is called when the user has finished inline text-editing
+  function onTextEdited(e) {
+    var tb = e.subject;
+    if (tb === null || !tb.name) return;
+    var node = tb.part;
+    if (node instanceof go.Node) {
+      updateProperties(node.data);
+    }
+  }
+
+  // Update the data fields when the text is changed
+  function updateData(text, field) {
+    var node = myDiagram.selection.first();
+    // maxSelectionCount = 1, so there can only be one Part in this collection
+    var data = node.data;
+    var category = data.category;
+    if (node instanceof go.Node && data !== null) {
+      var model = myDiagram.model;
+      var param_list = get_param_list(_layers[category]);
+      model.startTransaction("modified " + field);
+      if (field === "name") {
+        model.setDataProperty(data, "name", text);
+      }
+      else if (field === "phase"){
+        model.setDataProperty(data, "phase", text);
+      }
+      else if (field.search("filler") >= 0) {
+        if (field == "weight_filler") {
+          if (!data["weight_filler_type"]) {
+            data["weight_filler_type"] = "xavier";
+          }
+        } else {
+          if (!data[field + "_type"]) {
+            data[field + "_type"] = "constant";
+            if (field == "scale_filler") {
+              data[field + "_value"] = 1;
+            } else {
+              data[field + "_value"] = 0;
+            }
+          }
+        }
+        //if (data["weight_filler_type"] || data["bias_filler_type"]) {
+        model.setDataProperty(data, field, text);
+        //}
+      } else {
+        if (param_list) {
+          var param_num = param_list.length;
+          for (var i = 0 ; i < param_num; ++i) {
+            if(field === param_list[i]) {
+              model.setDataProperty(data, param_list[i], text);
+            }
+          }
+        }
+      }
+      model.commitTransaction("modified " + field);
+    }
+    // save immediately after modification
+    updateProperties(data);
+    save();
+  }
+////////////////////////new added finished///////////////////////////
+
+  function isBool(value) {
+    if (value == "true" || value == "false") {
+      return true;
+    }
+    return false;
+  }
+
+  function get_data_str(_data, field) {
+    var res = "";
+    if (field === "phase") {
+      res = '\t' + 'include: { ' + field + ": " + _data[field] + ' }\n';
+    } else if (field === "category") {
+      res = '\t' + "type" + ": " + _data[field] + '\n';
+    } else if (field === "top" || field === "bottom") {
+      //console.log(_data[field]);
+      for(var i  = 0 ; i < _data[field].length; ++i) {
+        res += '\t' + field + ": \"" + _data[field][i] + '\"\n';
+      }
+    } else {
+      if (isNaN(_data[field]) && !isBool(_data[field])) {
+        res = '\t' + field + ": \"" + _data[field] + '\"\n';
+      } else {
+        res = '\t' + field + ": " + _data[field] + '\n';
+      }   
+    }
+    //console.log(res);
+    return res;
+  }
+
+  function get_param_name(_raw_param) {
+    var _param = _raw_param[0];
+    //console.log(_param);
+    for(var _key_param in _param) {
+      return _key_param;
+    }
+    return "";
+  }
+
+  function get_filler_str(obj, key, type) {
+    var pre = "\t\t\t";
+    var res = pre + "type: \"" + type + "\"\n";
+    if (type == "constant") {
+      if (!obj[key+"_value"]) { 
+        if (key == "scale_filler") {
+          obj[key+"_value"] = 1;
+        } else {
+          obj[key+"_value"] = 0;
+        }
+      }
+      res += pre + "value: " + obj[key+"_value"] + "\n";
+    } else if (type == "uniform") {
+      if (!obj[key+"_min"]) { obj[key+"_min"] = 0;}
+      if (!obj[key+"_max"]) { obj[key+"_max"] = 1;}
+      res += pre + "min: " + obj[key+"_min"] + "\n";
+      res += pre + "max: " + obj[key+"_max"] + "\n";
+    } else if (type == "gaussian") {
+      if (!obj[key+"_mean"]) { obj[key+"_mean"] = 0;}
+      if (!obj[key+"_std"]) { obj[key+"_std"] = 1;}
+      res += pre + "mean: " + obj[key+"_mean"] + "\n";
+      res += pre + "std: " + obj[key+"_std"] + "\n";
+    }
+    return res;
+  }
+
+  // Show the diagram's model in JSON format that the user may edit
+  function save_prototxt(_model) {
+    var prototxt = "name: \"net\"\n";
+    var _node_data_array = _model[0]['nodeDataArray'];
+    var _link_data_array = _model[0]['linkDataArray'];
+    var _node_data_num = _node_data_array.length;
+    var _link_data_num = _link_data_array.length;
+    var _map = {};
+    // parse layers
+    for (var i = 0 ; i < _node_data_num; ++i) {
+      var _data = _node_data_array[i];
+      var _layer = {};
+      if (_map[_data["name"]] && _map[_data["name"]]["phase"] == _data["phase"]) {
+        if (_data["phase"] ) {
+          alert("ERROR: The " + _data["name"] + " layer" + " in " + _data["phase"] + " phase has already existed.");
+        } else {
+          alert("ERROR: The " + _data["name"] + " layer" + " in TRAIN and TEST phase has already existed.");
+        }
+      }
+      _layer["name"] = _data["name"];
+      _layer["category"] = _data["category"];
+      if (_data.category != 'BLOB') {
+        var param_list = get_param_list(_layers[_data.category]);
+        if (param_list) {
+          var param_num = param_list.length;
+          for (var j = 0; j < param_num; ++j) {
+            if (_data[param_list[j]]) {
+              _layer[param_list[j]] = _data[param_list[j]];
+            }
+          }
+        }        
+        if (_data["phase"]) {
+          _layer["phase"] = _data["phase"];
+        }
+      }
+      _map[_data["key"]] = _layer;
+    }
+
+    console.log(_map);
+
+    // parse edges
+    for (var i = 0; i < _link_data_num; ++i) {
+      var _edge = _link_data_array[i];
+      var from_obj = _map[_edge["from"]];
+      var to_obj = _map[_edge["to"]];
+      if(from_obj.category != "BLOB" && to_obj.category == "BLOB") { // from layer to blob
+        if (!from_obj["top"]) {
+          _map[_edge["from"]]["top"] = [];
+        } 
+        _map[_edge["from"]]["top"].push(to_obj["name"]);
+      } 
+      else if (from_obj.category == "BLOB" && to_obj.category != "BLOB") { // from blob to layer
+        if (!to_obj["bottom"]) {
+          _map[_edge["to"]]["bottom"] = [];
+        }
+        _map[_edge["to"]]["bottom"].push(from_obj["name"]);
+      } 
+      else if (from_obj.category != "BLOB" && to_obj.category != "BLOB") {
+        console.log("Not allowed both layers!");
+        alert("Layers are not allowed to connect to layers directly!");
+        return;
+      } 
+      else if (from_obj.category == "BLOB" && to_obj.category == "BLOB") {
+        console.log("Not allowed both blob!");
+        alert("Blobs are not allowed to connect to Blobs directly!");
+        return;
+      }
+    } 
+
+    //console.log(_map);
+
+    for (var index in _map) {
+      var obj = _map[index];
+      if (obj.category != "BLOB") {
+        var _layer_str = "layers {\n";
+        
+        _layer_str += get_data_str(obj, "name");
+        _layer_str += get_data_str(obj, "category");
+        if ( obj["top"]) {
+          _layer_str += get_data_str(obj, "top");
+        }
+        if ( obj["bottom"]) {
+          _layer_str += get_data_str(obj, "bottom");
+        }
+
+        var flag = 0;
+        for (var key in obj) {
+          //console.log(key);
+          if (key != "name" && key != "top" && key != "bottom" && key != "phase" && key != "category") {
+            if(!flag) {
+              _layer_str += "\t" + get_param_name(_layers[obj.category]) + "{\n";
+              flag = 1;
+            }
+            if (key == "weight_filler") {
+              _layer_str += "\t\t" + key + " {\n";
+              if (!obj[key + "_type"]) {
+                _layer_str += "\t\t\t" + "type: \"xavier\"" + "\n";
+              } else {
+                _layer_str += get_filler_str(obj, key, obj[key + "_type"]);
+              }
+              _layer_str += "\t\t}\n"
+            } else if (key == "bias_filler" || key == "scale_filler" || key == "shift_filler" || key == "data_filler") {
+              _layer_str += "\t\t" + key + " {\n";
+              if (!obj[key + "_type"]) {
+                _layer_str += "\t\t\t" + "type: \"constant\"" + "\n";
+                if (key == "scale_filler") {
+                  _layer_str += "\t\t\t" + "value: 1" + "\n";
+                } else {
+                  _layer_str += "\t\t\t" + "value: 0" + "\n";
+                }
+              } else {
+                _layer_str += get_filler_str(obj, key, obj[key + "_type"]);
+              }
+              _layer_str += "\t\t}\n";
+            } else if (key.search("filler") >= 0) {
+              continue;
+            } else {
+              _layer_str += '\t' + get_data_str(obj, key);
+            }
+          }
+        }
+        if(flag){
+          _layer_str += "\t" + "}\n"
+        }
+        if ( obj["phase"]) {
+          _layer_str += get_data_str(obj, "phase");
+        }
+        _layer_str += "}\n";
+
+        prototxt += _layer_str;        
+      }
+    } 
+
+    return prototxt;
+  }
+
+  function save() {
+    _model = myDiagram.model.toJson();
+    document.getElementById("mySavedModel").value = _model;
+    document.getElementById("prototxt").value = save_prototxt(eval('['+_model+']'));
+    gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
+    compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
+    myDiagram.isModified = false;
+  }
+  function load() {
+    _model = document.getElementById("mySavedModel").value;
+    myDiagram.model = go.Model.fromJson(_model);
+    document.getElementById("prototxt").value = save_prototxt(eval('['+_model+']'));
+    gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
+    compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
+  }
+  // add an SVG rendering of the diagram at the end of this page
+  function makeSVG() {
+    var svg = myDiagram.makeSvg({
+        scale: 1
+      });
+    svg.style.border = "1px solid black";
+    obj = document.getElementById("SVGArea");
+    obj.appendChild(svg);
+    if (obj.children.length > 0) 
+      obj.replaceChild(svg, obj.children[0]);
+  }
+
+</script>
+<script>
+    function convertImageToCanvas(image) {
+      var canvas = document.createElement("canvas");
+      canvas.width = image.width;
+      canvas.height = image.height;
+      canvas.getContext("2d").drawImage(image, 0, 0);
+
+      return canvas;
+    }
+
+    function save_to_image() {
+      var image = new Image();
+      var obj = document.getElementById("myDiagram");
+      var _canvas = obj.childNodes[0];
+      image.src = _canvas.toDataURL("1.png");
+      var png = convertImageToCanvas(image);
+      document.getElementById("newArea").appendChild(png);
+      //return image;
+    }
+</script>
+<script>
+function saveTextAsFile()
+{
+    var textToWrite = document.getElementById("prototxt").value;
+    var textFileAsBlob = new Blob([textToWrite], {type:'text/plain'});
+    var fileNameToSaveAs = "prototxt.txt";
+    var downloadLink = document.createElement("a");
+    downloadLink.download = fileNameToSaveAs;
+    downloadLink.innerHTML = "Download File";
+    if (window.webkitURL != null)
+    {
+        // Chrome allows the link to be clicked
+        // without actually adding it to the DOM.
+        downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
+    }
+    else
+    {
+        // Firefox requires the link to be added to the DOM
+        // before it can be clicked.
+        downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
+        downloadLink.onclick = destroyClickedElement;
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+    }
+
+    downloadLink.click();
+}
+</script>
+<script>
+
+function clickUpload() {
+  document.getElementById("upload_file").click();
+}
+
+function uploadAndSubmit() { 
+
+  if (document.getElementById("upload_file").files.length === 0) { return; }
+  var file = document.getElementById("upload_file").files[0];
+  //if (file.type != "text/plain") {
+  //  alert("Invalid file type!"); 
+  //  return;
+  //}
+
+  var reader = new FileReader(); 
+
+  reader.onloadstart = function() { 
+     console.log("onloadstart"); 
+  } 
+  reader.onprogress = function(p) { 
+     console.log("onprogress"); 
+  } 
+
+  reader.onload = function() { 
+     console.log("load complete"); 
+  } 
+
+  reader.onloadend = function() { 
+      if (reader.error) { 
+         console.log(reader.error); 
+      } else { 
+         document.getElementById("prototxt").value = reader.result;
+      } 
+  } 
+
+  reader.readAsText(file); 
+}
+</script>
+<script>
+function get_loc(start_x, start_y) {
+  return (start_x + " " + start_y);
+}
+
+function unique(arr) {
+  var result = [], hash = {};
+  for (var i = 0, elem; (elem = arr[i]) != null; i++) {
+      if (!hash[elem]) {
+          result.push(elem);
+          hash[elem] = true;
+      }
+  }
+  return result;
+}
+
+function compute_attr_info(_node_data_array, _link_data_array) {
+  //document.getElementById("model_size").innerHTML = compute_model_size(_node_data_array, _link_data_array);
+  //document.getElementById("data_memory").innerHTML = compute_data_memory(_node_data_array, _link_data_array);
+}
+
+function compute_model_size(_node_data_array, _link_data_array) {
+  var _node_data_num = _node_data_array.length;
+  var _link_data_num = _link_data_array.length;
+  var _map = {};
+  var _struct_list = [];
+  // parse layers
+  for (var i = 0 ; i < _node_data_num; ++i) {
+    var _data = _node_data_array[i];
+    var _layer = {};
+
+    _layer["key"] = _data["key"];
+    _layer["name"] = _data["name"];
+    _layer["category"] = _data["category"];
+    if (_data.category != 'BLOB') {
+      var param_list = get_param_list(_layers[_data.category]);
+      if (param_list) {
+        var param_num = param_list.length;
+        for (var j = 0; j < param_num; ++j) {
+          if (_data[param_list[j]]) {
+            _layer[param_list[j]] = _data[param_list[j]];
+          }
+        }
+      }        
+      if (_data["phase"]) {
+        _layer["phase"] = _data["phase"];
+      }
+
+    }
+    _map[_data["key"]] = _layer;
+  }
+  // parse over
+
+  _edge_to = {};
+
+  for (var i = 0; i < _link_data_num; ++i) {
+    if (!_edge_to[_link_data_array[i]["to"]]) {
+      _edge_to[_link_data_array[i]["to"]] = [];
+    }
+    _link_data_array[i]["points"] = [];
+    _link_data_array[i]["fromPort"] = "T";
+    _link_data_array[i]["toPort"] = "B";
+    _edge_to[_link_data_array[i]["to"]].push(_edge_to[_link_data_array[i]["from"]]);
+  }
+  // select bottom
+  var bottom_list = [];
+  for (var _key in _map) {
+    if (!_edge_to[_key]) {
+      bottom_list.push(_map[_key]);
+    }
+  }
+
+  var cur_bottom = bottom_list;
+
+  for (var i = 0; i < cur_bottom.length; ++i) {
+    if (cur_bottom[i].width && cur_bottom[i].height) {
+      cur_bottom[i]._map_wsize = cur_bottom[i].width;
+      cur_bottom[i]._map_hsize = cur_bottom[i].height;
+    }
+  }
+
+  console.log(cur_bottom);
+
+  var model_size = 0;
+  var calculation = 0;
+
+  while(cur_bottom.length) {
+    var layer_cur_top = [];
+    for (var j = 0; j < cur_bottom.length; ++j) {
+      var cur_top = [];     
+      for (var i = 0; i < _link_data_num; ++i) {
+        if (_link_data_array[i]["from"] == cur_bottom[j].key) {
+          cur_top.push(_map[_link_data_array[i]["to"]]);
+        }
+      }
+      console.log(cur_bottom[j]);
+      for (var i = 0; i < cur_top.length; ++i) {
+        if (cur_top[i].category == "CONVOLUTION" || cur_top[i].category == "INNER_PRODUCT") {
+          if (cur_bottom[j].kernel_h && cur_bottom[j].kernel_w 
+            && cur_bottom[j].stride && cur_bottom[j].num_output && cur_top[i].num_output) {
+            var tmp_num = (cur_bottom[j].kernel_h * cur_bottom[j].kernel_w 
+              * cur_bottom[j].num_output * cur_top[i].num_output)/(cur_bottom[j].stride*cur_bottom[j].stride);
+            model_size += tmp_num;
+            calculation += tmp_num*cur_bottom[j]._map_wsize*cur_bottom[j]._map_hsize;
+          } else if (cur_bottom[j].kernel_size && cur_bottom[j].stride 
+            && cur_bottom[j].num_output && cur_top[i].num_output) {
+            var tmp_num = (cur_bottom[j].kernel_size * cur_bottom[j].kernel_size 
+              * cur_bottom[j].num_output * cur_top[i].num_output)/(cur_bottom[j].stride*cur_bottom[j].stride);
+            model_size += tmp_num;
+            calculation += tmp_num*cur_bottom[j]._map_wsize*cur_bottom[j]._map_hsize;
+          } 
+        } else {
+          cur_top[i]._map_wsize = cur_bottom[j]._map_wsize;
+          cur_top[i]._map_hsize = cur_bottom[j]._map_hsize;
+        }
+        layer_cur_top.push(cur_top[i]);
+        for (var k = 0; k < _node_data_num; ++k) {
+          if (_node_data_array[k].key == cur_top[i].key) {
+            _node_data_array[k]._map_wsize = cur_top[i]._map_wsize;
+            _node_data_array[k]._map_hsize = cur_top[i]._map_hsize;
+            break;
+          }
+        }
+      }
+    }
+    // update current bottom
+    //layer_cur_top = unique(layer_cur_top);
+    cur_bottom = layer_cur_top;
+    //console.log(cur_bottom);
+  }  
+  console.log(calculation);
+  return model_size;
+}
+
+function compute_data_memory(_node_data_array, _link_data_array) {
+  return 0;
+}
+
+function gen_map_size_from_struct(_node_data_array, _link_data_array) {
+  var _node_data_num = _node_data_array.length;
+  var _link_data_num = _link_data_array.length;
+  var _map = {};
+  var _struct_list = [];
+  // parse layers
+  for (var i = 0 ; i < _node_data_num; ++i) {
+    var _data = _node_data_array[i];
+    var _layer = {};
+
+    _layer["key"] = _data["key"];
+    _layer["name"] = _data["name"]
+    _layer["category"] = _data["category"]
+    if (_data.category != 'BLOB') {
+      var param_list = get_param_list(_layers[_data.category]);
+      if (param_list) {
+        var param_num = param_list.length;
+        for (var j = 0; j < param_num; ++j) {
+          if (_data[param_list[j]]) {
+            _layer[param_list[j]] = _data[param_list[j]];
+          }
+        }
+      }        
+      if (_data["phase"]) {
+        _layer["phase"] = _data["phase"];
+      }
+
+    }
+    _map[_data["key"]] = _layer;
+  }
+  // parse over
+
+  _edge_to = {};
+
+  for (var i = 0; i < _link_data_num; ++i) {
+    if (!_edge_to[_link_data_array[i]["to"]]) {
+      _edge_to[_link_data_array[i]["to"]] = [];
+    }
+    _link_data_array[i]["points"] = [];
+    _link_data_array[i]["fromPort"] = "T";
+    _link_data_array[i]["toPort"] = "B";
+    _edge_to[_link_data_array[i]["to"]].push(_edge_to[_link_data_array[i]["from"]]);
+  }
+  // select bottom
+  var bottom_list = [];
+  for (var _key in _map) {
+    if (!_edge_to[_key]) {
+      bottom_list.push(_map[_key]);
+    }
+  }
+
+  var cur_bottom = bottom_list;
+
+  for (var i = 0; i < cur_bottom.length; ++i) {
+    if (cur_bottom[i].width && cur_bottom[i].height) {
+      cur_bottom[i]._map_wsize = cur_bottom[i].width;
+      cur_bottom[i]._map_hsize = cur_bottom[i].height;
+    }
+  }
+
+  console.log(cur_bottom);
+
+  var model_size = 0;
+  var calculation = 0;
+
+  while(cur_bottom.length) {
+    var layer_cur_top = [];
+    for (var j = 0; j < cur_bottom.length; ++j) {
+      var cur_top = [];
+      for (var i = 0; i < _link_data_num; ++i) {
+        if (_link_data_array[i]["from"] == cur_bottom[j].key) {
+          cur_top.push(_map[_link_data_array[i]["to"]]);
+        }
+      }
+      for (var i = 0; i < cur_top.length; ++i) {
+        if (cur_top[i].category == "CONVOLUTION" || cur_top[i].category == "POOLING") {
+          if (cur_top[i].kernel_h && cur_top[i].kernel_w && cur_top[i].stride) {
+            cur_top[i]._map_wsize = (cur_bottom[j]._map_wsize - cur_top[i].kernel_w)/cur_top[i].stride + 1;
+            cur_top[i]._map_hsize = (cur_bottom[j]._map_hsize - cur_top[i].kernel_h)/cur_top[i].stride + 1;
+          } else if (cur_top[i].kernel_size && cur_top[i].stride) {
+            cur_top[i]._map_wsize = (cur_bottom[j]._map_wsize - cur_top[i].kernel_size)/cur_top[i].stride + 1;
+            cur_top[i]._map_hsize = (cur_bottom[j]._map_hsize - cur_top[i].kernel_size)/cur_top[i].stride + 1;
+          }
+        } else {
+          cur_top[i]._map_wsize = cur_bottom[j]._map_wsize;
+          cur_top[i]._map_hsize = cur_bottom[j]._map_hsize;
+        }
+        layer_cur_top.push(cur_top[i]);
+        for (var k = 0; k < _node_data_num; ++k) {
+          if (_node_data_array[k].key == cur_top[i].key) {
+            _node_data_array[k]._map_wsize = cur_top[i]._map_wsize;
+            _node_data_array[k]._map_hsize = cur_top[i]._map_hsize;
+            break;
+          }
+        }
+
+        if ( cur_bottom[j].category == "CONVOLUTION" 
+          && (cur_top[i].category == "CONVOLUTION" || cur_top[i].category == "INNER_PRODUCT")) {
+          if (cur_bottom[j].kernel_h && cur_bottom[j].kernel_w 
+            && cur_bottom[j].stride && cur_bottom[j].num_output && cur_top[i].num_output) {
+            var tmp_num = (cur_bottom[j].kernel_h * cur_bottom[j].kernel_w 
+              * cur_bottom[j].num_output * cur_top[i].num_output)/(cur_bottom[j].stride*cur_bottom[j].stride);
+            model_size += tmp_num;
+            calculation += tmp_num*cur_bottom[j]._map_wsize*cur_bottom[j]._map_hsize;
+          } else if (cur_bottom[j].kernel_size && cur_bottom[j].stride 
+            && cur_bottom[j].num_output && cur_top[i].num_output) {
+            var tmp_num = (cur_bottom[j].kernel_size * cur_bottom[j].kernel_size 
+              * cur_bottom[j].num_output * cur_top[i].num_output)/(cur_bottom[j].stride*cur_bottom[j].stride);
+            model_size += tmp_num;
+            calculation += tmp_num*cur_bottom[j]._map_wsize*cur_bottom[j]._map_hsize;
+          } 
+        }        
+      }
+    }
+    // update current bottom
+    //layer_cur_top = unique(layer_cur_top);
+    cur_bottom = layer_cur_top;
+    //console.log(cur_bottom);
+  }  
+  document.getElementById("model_size").innerHTML = model_size;
+  document.getElementById("data_memory").innerHTML = 0;
+  document.getElementById("calculation").innerHTML = calculation;
+}
+
+function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
+  // modified nodeDataArray loc
+  var _node_data_num = _node_data_array.length;
+  var _link_data_num = _link_data_array.length;
+  var _map = {};
+  var start_x = -45;
+  var start_y = 325;
+  var delta_x = 100;
+  var delta_y = -80;
+  var _struct_list = [];
+  // parse layers
+  for (var i = 0 ; i < _node_data_num; ++i) {
+    var _data = _node_data_array[i];
+    var _layer = {};
+
+    _layer["name"] = _data["name"]
+    _layer["category"] = _data["category"]
+    if (_data.category != 'BLOB') {
+      var param_list = get_param_list(_layers[_data.category]);
+      if (param_list) {
+        var param_num = param_list.length;
+        for (var j = 0; j < param_num; ++j) {
+          if (_data[param_list[j]]) {
+            _layer[param_list[j]] = _data[param_list[j]];
+          }
+        }
+      }        
+      if (_data["phase"]) {
+        _layer["phase"] = _data["phase"];
+      }
+    }
+    _map[_data["key"]] = _layer;
+  }
+
+  //console.log(_map);
+  //console.log(_link_data_array);
+  
+  _edge_to = {};
+  _edge_from = {};
+
+  for (var i = 0; i < _link_data_num; ++i) {
+    if (!_edge_to[_link_data_array[i]["to"]]) {
+      _edge_to[_link_data_array[i]["to"]] = [];
+    }
+    if (!_edge_from[_link_data_array[i]["from"]]) {
+      _edge_from[_link_data_array[i]["from"]] = [];
+    }
+    _link_data_array[i]["points"] = [];
+    _link_data_array[i]["fromPort"] = "T";
+    _link_data_array[i]["toPort"] = "B";
+    _edge_to[_link_data_array[i]["to"]].push(_edge_to[_link_data_array[i]["from"]]);
+    _edge_from[_link_data_array[i]["from"]].push(_edge_from[_link_data_array[i]["to"]]);
+  }
+  // select bottom and top
+  var bottom_list = [];
+  var top_list = [];
+  for (var _key in _map) {
+    if (!_edge_to[_key]) {
+      bottom_list.push(_key);
+    }
+    if (!_edge_from[_key]) {
+      top_list.push(_key);
+    }
+  }
+
+  //console.log(bottom_list);
+  //console.log(top_list);
+
+  var cur_bottom = bottom_list;
+  var cur_start_x = start_x - (cur_bottom.length-1.0)/2*delta_x;
+  for (var i = 0; i < cur_bottom.length; ++i) {
+    for (var j = 0; j < _node_data_num; ++j) {
+      if (_node_data_array[j]["key"] == cur_bottom[i]) {
+        _node_data_array[j]["loc"] = get_loc(start_x+i*delta_x, start_y);
+        break;
+      }
+    }
+  }
+
+  var depth = 1;
+  var visited_list = {};
+  while(cur_bottom.length > 0) {  
+    var cur_top = [];
+    for (var i = 0; i < _link_data_num; ++i) {
+      for (var j = 0; j < cur_bottom.length; ++j) {
+        if (visited_list[cur_bottom[j]]) { 
+          continue; 
+        }
+        if(_link_data_array[i]["from"] == cur_bottom[j]) {
+          cur_top.push(_link_data_array[i]["to"]);
+        }
+      }
+    }
+    for (var i = 0; i < cur_bottom.length; ++i) {
+      if (!visited_list[cur_bottom[i]]) {
+        visited_list[cur_bottom[i]] = 1;
+      }
+    }
+    var hit_num = 0;
+    var j_list = {};
+    var tmp_cur_top = [];
+    for (var i = 0; i < top_list.length; ++i) {
+      for (var j = 0; j < cur_top.length; ++j) {
+        if (cur_top[j] == top_list[i]) {
+          j_list[j] = 1;
+          hit_num++;
+          break;
+        }
+      }
+    }
+    for (var i = 0; i < cur_top.length; ++i) {
+      if(!j_list[i]){
+        tmp_cur_top.push(cur_top[i]);
+      }
+    }
+    if (tmp_cur_top.length > 0){
+      cur_top = tmp_cur_top;
+    }
+    cur_top = unique(cur_top);
+
+    var cur_top_num = cur_top.length;
+
+    var cur_start_x = start_x - (cur_top_num-1.0)/2*delta_x;
+    for (var j = 0; j < cur_top_num; ++j) {
+      for (var k = 0; k < _node_data_num; ++k) {
+        if (_node_data_array[k]["key"] == cur_top[j]) {
+          _node_data_array[k]["loc"] = get_loc(cur_start_x+j*delta_x, start_y + depth*delta_y);
+          break;
+        }
+      }
+    }
+  
+    cur_bottom = cur_top;
+    depth += 1;
+    if (depth > 200) {
+      alert("Warning: Network is too complicated!");
+      break;
+    }
+  }
+  _model["nodeDataArray"] = _node_data_array;
+  return _model.toJson();
+}
+
+function gen_simplified_struct() {
+  save();
+
+  var _struct_json = document.getElementById("mySavedModel").value;
+  var _model = go.Model.fromJson(_struct_json);
+  //console.log(_model["nodeDataArray"]);
+  document.getElementById("mySavedModel").value = gen_loc_from_layers(_model["nodeDataArray"], _model["linkDataArray"], _model);
+
+  load();
+}
+
+function find_all(source, pattern) {
+  var index = [];
+  for (var i = 0; i < source.length - pattern.length + 1; i++) {
+    for (var j = 0; j < pattern.length; j++) {
+      if (source[i+j] != pattern[j]) {
+        break;
+      }
+      if (j == pattern.length - 1) {
+        index.push(i);
+      }
+    }
+  }
+  return index;
+}
+
+function split_text(source, index) {
+  var result = [];
+  for (var i = 0; i < index.length - 1; i++) {
+    result.push(source.substr(index[i], index[i+1]-index[i]));
+  }
+  return result;
+}
+
+function trim(source) {
+  var result = "";
+  for (var i = 0; i < source.length; i++) {
+    if (source[i] != '{' && source[i] != '}' && source[i] != ' ' && source[i] != '\n' && source[i] != '\t') {
+      result += source[i];
+    }
+  }
+  return result;
+}
+
+function sort_number(a, b) {
+  return a - b;
+}
+
+function rm_quotation(str) {
+  if (str) {
+    var len = str.length;
+    if (len > 2) {
+      if (str[0] == "\"" && str[len - 1] == "\"") {
+        return str.substr(1, len-2);
+      } else {
+        return str;
+      }
+    }
+  }
+  return str;
+}
+
+function gen_model_from_prototxt() {
+  // generate nodeDataArray and linkDataArray by parsing prototxt
+  var key_list = ["name", "batch_size", "layers", "bottom:", "top:", "phase:", "include", "num_output", "inner_product_param", "type:",
+  "raw_data_param", "data_param","bn_param","data_source:", "label_source:", "num:", "height:", "width:", "channel:", "use_memory:", "pool:","\"pool\"", "source:","image_data_param:",
+  "DB_backend:", "rand_skip:", "shuffle:", "new_height:", "new_width:", "scale:", "mean_file:", "crop_size:", "mirror:", "pooling_param", "pad:", "pad_h:", "pad_w:",
+  "kernel_size:", "kernel_h:", "kernel_w:", "stride:", "stride_h:", "stride_w:", "bias_term:", "convolution_param", "relu_param", "negative_slope:",
+  "dropout_param", "dropout_ratio:"];
+  var filler_list = ["weight_filler", "bias_filler", "scale_filler", "shift_filler", "data_filler"];
+  var prototxt = document.getElementById("prototxt").value;
+
+  // remove comment in prototxt
+  var prototxt_tmp = "";
+  var prototxt_line = prototxt.split('\n');
+  for (var i = 0; i < prototxt_line.length; ++i) {
+    if (trim(prototxt_line[i])[0] == "#") {
+      continue;
+    }
+    prototxt_tmp += prototxt_line[i];
+  }
+  prototxt = prototxt_tmp;
+
+  prototxt += "layers";
+  var tmp = find_all(prototxt, "layers");
+  var protos = split_text(prototxt, tmp);
+  console.log(protos);
+  var layers = {};
+  for (var i = 0; i < protos.length; i++) {
+    var field_index = [];
+    var layer_obj = {};
+
+    //console.log(protos[i]);
+
+    // parsing fillers
+    var _len = protos[i].length;
+    for (var j = 0; j < filler_list.length; ++j) {
+      var tmp_start = find_all(protos[i], filler_list[j]);
+      if (tmp_start.length == 1) {
+        var tmp_end = protos[i].indexOf("}", tmp_start[0]);
+        if (tmp_end >= 0) {
+          var tmp_field_index = [];
+          var tmp_protos_str = protos[i].substr(tmp_start[0], tmp_end - tmp_start[0]) + _filler_info[0];
+          protos[i] = protos[i].substr(0, tmp_start[0]) + protos[i].substr(tmp_end+1, _len - tmp_end);
+          //console.log(tmp_protos_str);
+          var tmp = find_all(tmp_protos_str, "type");
+          for (var k = 0; k < tmp.length; ++k) {
+            tmp_field_index.push(tmp[k]);
+          }
+          // check other param
+          for (var m = 0; m < _filler_info.length; ++m) {
+            var tmp = find_all(tmp_protos_str, _filler_info[m]);
+            for (var k = 0; k < tmp.length; ++k) {
+              tmp_field_index.push(tmp[k]);
+            }
+          }
+          tmp_field_index.sort(sort_number);
+          var tmp_fields = split_text(tmp_protos_str, tmp_field_index);
+          console.log(tmp_fields);
+          for (var k = 0; k < tmp_fields.length; ++k) {
+            tmp_fields[k] = trim(tmp_fields[k]);
+            var pos = find_all(tmp_fields[k], ":");
+            if (pos.length == 0) {
+              continue;
+            }
+            if (pos.length != 1) {
+              console.log("Error: "+filler_list[j]);
+              //alert("Error: "+filler_list[j]);
+            }
+            pos = pos[0];
+            var key = trim(tmp_fields[k].substr(0, pos));
+            var value = trim(tmp_fields[k].substr(pos+1, tmp_fields[k].length-pos-1));
+            if (!layer_obj[filler_list[j]]) {
+              layer_obj[filler_list[j]] = "default";
+            }
+            layer_obj[filler_list[j]+"_"+key] = value;//rm_quotation(value);
+          }
+        }
+      } else if(tmp_start.length > 1) {
+        console.log("More than one "+ filler_list[j] +" in the same layer!");
+        //alert("More than one "+ filler_list[j] +" in the same layer!");
+      }
+    }
+
+    console.log(layer_obj);
+    //console.log(protos[i]);
+
+    // after removing 'fillers'
+    protos[i] += "layers";
+    for (var j = 0; j < key_list.length; j++) {
+      var tmp = find_all(protos[i], key_list[j]);
+      for (var k = 0; k < tmp.length; k++) {
+        field_index.push(tmp[k]);
+      }
+    }
+    field_index.sort(sort_number);
+    fields = split_text(protos[i], field_index);
+    console.log(fields);
+    var top_value = [];
+    var bottom_value = [];
+    for (var j = 0; j < fields.length; j++) {
+      fields[j] = trim(fields[j]);
+      var pos = find_all(fields[j], ":");
+      if (pos.length == 0) {
+        continue;
+      }
+      if (pos.length != 1) {
+        //alert("Error:" + fields[j]);
+        console.log("Error:" + fields[j]);
+      }
+      pos = pos[0];
+      var key = trim(fields[j].substr(0, pos));
+      var value = trim(fields[j].substr(pos+1, fields[j].length-pos-1));
+      if (value.length == 0) {
+        continue;
+      }
+      if (key == "top") {
+        top_value.push(value);
+      }
+      else if (key == "bottom") {
+        bottom_value.push(value);
+      }
+      else {
+        layer_obj[key] = value;
+      }
+    }
+    layer_obj["name"] = rm_quotation(layer_obj["name"]);
+    layer_obj["top"] = top_value;
+    layer_obj["bottom"] = bottom_value;
+    if (layer_obj["phase"]) {
+      layers[layer_obj["name"]+layer_obj["phase"]+"***"] = layer_obj;
+    } else {
+      layers[layer_obj["name"]+"***"] = layer_obj;
+    }    
+  }
+  // generate linkDataArray
+  //console.log(layers);
+  var nodeDataArray = [];
+  var linkDataArray = [];
+  var blobDict = {};
+  for (var key in layers) {
+    var value = layers[key];
+    var _tmp_obj = {};
+    for (var _layer_key in value) {
+      if (_layer_key == "top" || _layer_key == "bottom") {
+        for (var i = 0; i < value[_layer_key].length; ++i) {
+          value[_layer_key][i] = rm_quotation(value[_layer_key][i]);
+          //console.log(value[_layer_key]);
+          blobDict[value[_layer_key][i]] = "BLOB";
+        }
+        continue;
+      }
+      if (_layer_key == "type") {
+        _tmp_obj["category"] = value[_layer_key];
+        continue;
+      }
+      if (_layer_key == "name") {
+        if (value["phase"]) {
+          _tmp_obj["key"] = value[_layer_key] + value["phase"] + "***";
+        } else {
+          _tmp_obj["key"] = value[_layer_key] + "***";
+        }
+      }
+      _tmp_obj[_layer_key] = rm_quotation(value[_layer_key]);
+    }
+    nodeDataArray.push(_tmp_obj);
+    for (var i = 0; i < value["top"].length; i++) {
+      var to = value["top"][i];
+      linkDataArray.push({"from":key, "to":to, "fromPort":"T", "toPort":"B"});
+    }
+    for (var i = 0; i < value["bottom"].length; i++) {
+      var from = value["bottom"][i];
+      linkDataArray.push({"from":from, "to":key, "fromPort":"T", "toPort":"B"});
+    }
+  }
+  for (var _blob in blobDict) {
+    var _tmp_obj = {};
+    _tmp_obj["key"] = _blob;
+    _tmp_obj["name"] = _blob;
+    _tmp_obj["category"] = "BLOB";
+    nodeDataArray.push(_tmp_obj);
+  }
+  console.log(nodeDataArray);
+
+  var _struct_json = {};
+  _struct_json["class"] = "go.GraphLinksModel";
+  _struct_json["linkFromPortIdProperty"] = "fromPort";
+  _struct_json["linkToPortIdProperty"] = "toPort";
+  _struct_json["nodeDataArray"] = nodeDataArray;
+  _struct_json["linkDataArray"] = linkDataArray;
+
+  var _model = go.Model.fromJson(_struct_json);
+
+  document.getElementById("mySavedModel").value = gen_loc_from_layers(_model["nodeDataArray"], _model["linkDataArray"], _model);
+
+  load();
+}
+
+</script>
+<script type="text/javascript" src="data.json"></script>
+<script>
+  //console.log(_layers_info);
+  _layers = _layers_info[0];
+  _filler_info = ["value", "min", "max", "mean", "std"];
+</script>
+</head>
+<body onload="init()">
+<div style="text-align:center;">
+<h1>Caffe Prototxt Generator</h1>
+</div>
+<div id="sample">
+  <div style="width:100%; white-space:nowrap;">
+    <span style="display: inline-block; vertical-align: top; padding: 5px; width:15%">
+      <h2>Blob</h2>
+      <div id="BLOB" style="border: solid 1px gray; height: 60px"></div>
+      <h2>Data Layers</h2>
+      <div id="myPalette" style="border: solid 1px gray; height: 250px"></div>
+      <h2>Common Layers</h2>
+      <div id="myPalette1" style="border: solid 1px gray; height: 250px"></div>
+    </span>
+
+    <span style="display: inline-block; vertical-align: top; padding: 5px; width:58%">
+      <div id="myDiagram" style="border: solid 1px gray; height: 720px"></div>
+      <div id="infoBoxHolder">
+        <!-- Initially Empty, it is populated when updateInfoBox is called -->
+      </div>
+    </span>
+
+    <span style="display: inline-block; vertical-align: top; padding: 5px; width:22%">
+        <table>
+          <tr>
+            <td><button onclick="gen_simplified_struct()" style="display:block;">Simplify</button></td> 
+            <td><button id="SaveButton" onclick="save()" style="display:block;">Save</button></td>
+            <td><button onclick="gen_model_from_prototxt()" style="display:block;">Load</button></td>
+          </tr>
+          <tr>
+            <td><button onclick="saveTextAsFile()" style="display:block;">Download</button></td>
+            <td>
+              <button onclick="clickUpload()" style="display:block;">Upload</button>
+              <input type="file" name="file" id="upload_file" style="display:none;" onchange="uploadAndSubmit();"/>
+            </td>
+          </tr>
+        </table>
+        <div style="margin-top: 10px;">
+          Model size is about: <b id="model_size">1</b> MB
+        </div>
+        <div style="">
+          Memory required for data is: <b id="data_memory">1</b> MB
+        </div>
+        <div style="margin-bottom: 10px;">
+          <!--(measured by floating-point calculation)-->
+          Calculation magnitude: <b id="calculation">1</b> 
+        </div>
+        <div style="margin-bottom: 10px;">
+          <div id="propertiesPanel" style="display: none; background-color: aliceblue; border: solid 1px black; overflow-x: auto;padding:10px;">
+            <b>Layer Parameter</b><br />
+            <table id="propertiesTable">
+            <tr>
+              <td>name:</td> 
+              <td><input type="text" id="name" value="" onchange="updateData(this.value, 'name')" /></td>
+            </tr>
+            <tr>
+              <td>type:</td>
+              <td><input type="text" id="category" value=""  disabled/></td>
+            </tr>
+            </table>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <textarea id="prototxt" style="width:100%;height:300px;display:block;">
+          </textarea>
+        </div>
+    </span>
+
+  </div>
+   
+  <textarea id="mySavedModel" style="width:100%;height:300px;display:none;">
+{ "class": "go.GraphLinksModel",
+  "linkFromPortIdProperty": "fromPort",
+  "linkToPortIdProperty": "toPort",
+  "nodeDataArray": [ 
+{"key":"ipTRAIN***", "name":"ip", "category":"INNER_PRODUCT", "num_output":"42", "phase":"TRAIN", "loc":"-45 -315", "weight_filler":"default", "bias_filler":"default"},
+{"key":"loss***", "name":"loss", "category":"SOFTMAX_LOSS", "loc":"-45 -475"},
+{"key":"conv4***", "name":"conv4", "category":"CONVOLUTION", "num_output":"128", "kernel_size":"4", "stride":"1", "pad":"0", "loc":"-45 165", "weight_filler":"default", "bias_filler":"default"},
+{"key":"pool4***", "name":"pool4", "category":"POOLING", "pooling_parampool":"MAX", "kernel_size":"2", "stride":"2", "pad":"0", "loc":"-45 -155"},
+{"key":"relu4***", "name":"relu4", "category":"RELU", "loc":"-45 5"},
+{"key":"dataTRAIN***", "name":"data", "category":"RAW_DATA", "data_source":"/data1/gaoy/xfsj/train002.bin", "label_source":"/data1/gaoy/xfsj/imagelist_train.label.meta", "batch_size":"64", "num":"509332", "height":"55", "width":"47", "channel":"3", "use_memory":"false", "phase":"TRAIN", "loc":"-45 325"},
+{"key":"dataTEST***", "name":"data", "category":"RAW_DATA", "data_source":"/data1/gaoy/xfsj/test002.bin", "label_source":"/data1/gaoy/xfsj/imagelist_test.label.meta", "batch_size":"8", "num":"8000", "height":"55", "width":"47", "channel":"3", "use_memory":"false", "phase":"TEST", "loc":"55 325"},
+{"key":"ip", "name":"ip", "category":"BLOB", "loc":"-45 -395"},
+{"key":"pool4", "name":"pool4", "category":"BLOB", "loc":"-45 -235"},
+{"key":"label", "name":"label", "category":"BLOB", "loc":"5 245"},
+{"key":"conv4", "name":"conv4", "category":"BLOB", "loc":"-45 85"},
+{"key":"data", "name":"data", "category":"BLOB", "loc":"-95 245"},
+{"key":"relu4", "name":"relu4", "category":"BLOB", "loc":"-45 -75"}
+ ],
+  "linkDataArray": [ 
+{"from":"ipTRAIN***", "to":"ip", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"pool4", "to":"ipTRAIN***", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"ip", "to":"loss***", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"label", "to":"loss***", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"conv4***", "to":"conv4", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"data", "to":"conv4***", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"pool4***", "to":"pool4", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"relu4", "to":"pool4***", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"relu4***", "to":"relu4", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"conv4", "to":"relu4***", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"dataTRAIN***", "to":"data", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"dataTRAIN***", "to":"label", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"dataTEST***", "to":"data", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"from":"dataTEST***", "to":"label", "fromPort":"T", "toPort":"B", "points":[  ]}
+ ]}
+  </textarea>
+
+  <button onclick="save_to_image()" style="display:none;">Render as image</button>
+  <button onclick="makeSVG()" style="display:none;">Render as SVG</button>
+  <div id="SVGArea"></div>
+  <div id="newArea"></div>
+  <div>
+    <p>This page is created by HTML5 Canvas and GoJS plugin.</p>
+    <div style="display:none;">
+    <p>The example shown above can be found at <a href="http://caffe.berkeleyvision.org/tutorial/fig/logreg.jpg">caffe blob</a></p>
+    <p>Usage:</p>
+    <li>Drag the objects on the left to right canvas.</li>
+    <li>Draw line from top to bottom.(Corresponding to caffe setting)</li>
+    <li>Support some basic shortcut key.(e.g. 'Delete','Ctrl+Z','Ctrl+Y') </li>
+    <li>Generate prototxt by canvas object.</li>
+    <li>Click on a layer and show its parameter.(e.g. click 'DATA' and show 'source, batch_size, ...')</li>
+    <li>Upload a prototxt file and transform it to an editable image.</li>
+    <p>TODO:</p> 
+    </div>
+  </div>
+</div>
+</body>
+</html>
