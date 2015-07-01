@@ -1,4 +1,5 @@
 function format(str) {
+  'use strict';
   // split text by enter
   var lines = str.split('\n');
   var filtered_lines = [];
@@ -55,6 +56,7 @@ function format(str) {
 
 // generate the block tree by recursion
 function append_block_tree(childs, line_number, prototxt) {
+  'use strict';
   if (prototxt[line_number] == "{") {
     alert("error, unexpected {");
     return prototxt.length;
@@ -175,7 +177,60 @@ function get_proto_tree(block_tree, prototxt) {
 
 // storage the basic information of the layers
 function get_layers(proto_tree) {
+  'use strict';
+
+  var kvlist2Dict = function(list) {
+    var i = 0;
+    var res = {};
+    for (i = 0; i < list.length; i += 1) {
+      if (list[i].value instanceof Array) {
+        res[list[i].key] = kvlist2Dict(list[i].value);
+      } else {
+        res[list[i].key] = list[i].value;
+      }
+
+    }
+    return res;
+  };
+
+  var findParam = function(key, tree_node) {
+    var i = 0;
+    for (i = 0; i < tree_node.length; i += 1) {
+      if (tree_node[i].key == key) {
+        return kvlist2Dict(tree_node[i].value);
+      }
+    }
+  };
+
+  var fill_params = function(tree_node, layer) {
+    var type = layer["type"].toUpperCase();
+    if (!_layers[type]) {
+      return;
+    }
+    var template = _layers[type][0];
+    layer["params"] = {};
+    console.log(tree_node);
+    for (var k0 in template) {
+      var template_in = template[k0];
+      var tree_node_param = findParam(k0, tree_node);
+      console.log(tree_node_param);
+      if (tree_node_param) {
+        for (var k1 in template_in) {
+          var obj = template_in[k1];
+          var key = Object.keys(obj)[0];
+          if (tree_node_param[key]) {
+            layer["params"][key] = tree_node_param[key];
+          } else {
+            layer["params"][key] = obj[key];
+          }
+        }
+      }
+    }
+    console.log(layer);
+  };
+
   var layers = {};
+
   for (var i = 0; i < proto_tree["value"].length; i++) {
     if (proto_tree["value"][i]["key"] == "layer") {
       var layer_params = proto_tree["value"][i]["value"];
@@ -196,6 +251,7 @@ function get_layers(proto_tree) {
           layer_value["bottom"].push(layer_params[j]["value"]);
         }
       }
+
       // get layer name and type
       for (var j = 0; j < layer_params.length; j++) {
         if (layer_params[j]["key"] == "name") {
@@ -205,6 +261,7 @@ function get_layers(proto_tree) {
           layer_value["type"] = layer_params[j]["value"].toUpperCase();
         }
       }
+      fill_params(layer_params, layer_value);
       if (layer_value["name"] == null) {
         alert("error, all layers must have a name.");
       }
@@ -224,12 +281,13 @@ function get_layers(proto_tree) {
         }
       }
       // check whether the layer name is existed
-      if (layers[layer_key] != undefined) {
+      if (layers[layer_key] !== undefined) {
         alert("error, more than one layers called " + layers[layer_key]["name"] +
           ".");
       } else {
         layers[layer_key] = layer_value;
       }
+
     }
   }
   return layers;
@@ -240,11 +298,20 @@ function get_node_data_array(layers) {
   var node_data_array = [];
   var blobs = {};
   for (var layer_key in layers) {
-    node_data_array.push({
+    var new_node = {
       "key": layer_key + "_layer",
       "name": layers[layer_key]["name"],
       "category": layers[layer_key]["type"]
-    });
+    };
+    var new_node_param = layers[layer_key]["params"];
+    if (new_node_param) {
+      for (var k in new_node_param) {
+        if (new_node_param[k]) {
+          new_node[k] = new_node_param[k];
+        }
+      }
+    }
+    node_data_array.push(new_node);
     for (var i = 0; i < layers[layer_key]["top"].length; i++) {
       var blob_name = layers[layer_key]["top"][i];
       blobs[blob_name + "_blob"] = {

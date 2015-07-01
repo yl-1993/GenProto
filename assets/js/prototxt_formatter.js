@@ -8,7 +8,7 @@ function isBool(value) {
 function get_data_str(_data, field) {
   var res = "";
   if (field === "phase") {
-    res = '\t' + 'include: { ' + field + ": " + _data[field] + ' }\n';
+    res = '\t' + 'include { ' + field + ": " + _data[field] + ' }\n';
   } else if (field === "category") {
     res = '\t' + "type" + ": " + _data[field] + '\n';
   } else if (field === "top" || field === "bottom") {
@@ -143,7 +143,7 @@ function save_prototxt(_model) {
   for (var index in _map) {
     var obj = _map[index];
     if (obj.category != "BLOB") {
-      var _layer_str = "layers {\n";
+      var _layer_str = "layer {\n";
 
       _layer_str += get_data_str(obj, "name");
       _layer_str += get_data_str(obj, "category");

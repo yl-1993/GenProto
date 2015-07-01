@@ -502,7 +502,7 @@ function gen_simplified_struct() {
   //console.log(_model["nodeDataArray"]);
   document.getElementById("mySavedModel").value = gen_loc_from_layers(_model["nodeDataArray"], _model["linkDataArray"], _model);
 
-  load();
+  //load();
 }
 
 
@@ -547,7 +547,9 @@ function gen_model_from_prototxt() {
   var layers = get_layers(proto_tree);
   var nodeDataArray = get_node_data_array(layers);
   var linkDataArray = get_link_data_array(layers);
-  console.log(linkDataArray);
+  console.log(proto_tree);
+  console.log(layers);
+  console.log(nodeDataArray);
 
   var _struct_json = {};
   _struct_json["class"] = "go.GraphLinksModel";
