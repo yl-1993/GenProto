@@ -2,10 +2,11 @@ function format(str) {
   // split text by enter
   var lines = str.split('\n');
   var filtered_lines = [];
+  var i = 0;
   // move the comment which is at the end of a line to the top of that line
-  for (var i = 0; i < lines.length; i++) {
+  for (i = 0; i < lines.length; i++) {
     var position = lines[i].indexOf('#');
-    if (position != 0 && position != -1) {
+    if (position !== 0 && position != -1) {
       filtered_lines.push(lines[i].substr(position, lines[i].length - position));
       lines[i] = lines[i].substr(0, position);
     }
@@ -14,13 +15,13 @@ function format(str) {
   lines = filtered_lines;
   filtered_lines = [];
   // remove the space and the tab
-  for (var i = 0; i < lines.length; i++) {
+  for (i = 0; i < lines.length; i++) {
     if (lines[i].indexOf('#') == -1) {
       lines[i] = lines[i].trim([' ', '\t']);
     }
   }
   // move the '{' and '}' to a new line
-  for (var i = 0; i < lines.length; i++) {
+  for (i = 0; i < lines.length; i++) {
     if (lines[i].indexOf('#') != -1) {
       filtered_lines.push(lines[i]);
       continue;
@@ -44,8 +45,8 @@ function format(str) {
   lines = filtered_lines;
   filtered_lines = [];
   // remove the redundant line
-  for (var i = 0; i < lines.length; i++) {
-    if (lines[i].length != 0) {
+  for (i = 0; i < lines.length; i++) {
+    if (lines[i].length !== 0) {
       filtered_lines.push(lines[i]);
     }
   }
@@ -66,16 +67,16 @@ function append_block_tree(childs, line_number, prototxt) {
   for (; i < prototxt.length - 1; i++) {
     if (prototxt[i + 1] != "{") {
       var node = {
-        "start" : i,
-        "end" : i + 1,
-        "childs" : []
+        "start": i,
+        "end": i + 1,
+        "childs": []
       };
       childs.push(node);
     } else {
       var node = {
-        "start" : i,
-        "end" : null,
-        "childs" : []
+        "start": i,
+        "end": null,
+        "childs": []
       };
       node["end"] = append_block_tree(node["childs"], i + 2, prototxt);
       childs.push(node);
@@ -90,18 +91,19 @@ function append_block_tree(childs, line_number, prototxt) {
 
 // generate the tree which contains the block position
 function get_block_tree(prototxt) {
-  var tree = {"start" : 0,
-              "end" : null,
-              "childs" : []
+  var tree = {
+    "start": 0,
+    "end": null,
+    "childs": []
   };
   var curr_line_number = 0;
   tree["end"] = append_block_tree(tree["childs"], curr_line_number, prototxt);
   // if the last line is not "}"
   if (tree["end"] != prototxt.length) {
     var node = {
-      "start" : prototxt.length - 1,
-      "end" : prototxt.length,
-      "childs" : []
+      "start": prototxt.length - 1,
+      "end": prototxt.length,
+      "childs": []
     };
     tree["childs"].push(node);
     tree["end"] = prototxt.length;
@@ -111,15 +113,16 @@ function get_block_tree(prototxt) {
 
 
 // generate the proto tree by recursion
-function append_proto_tree(proto_tree_value, block_tree_childs, father, prototxt) {
+function append_proto_tree(proto_tree_value, block_tree_childs, father,
+  prototxt) {
   for (var i = 0; i < block_tree_childs.length; i++) {
     var start = block_tree_childs[i]["start"];
     if (block_tree_childs[i]["childs"].length == 0) {
       if (prototxt[start][0] == '#') {
         var node = {
-          "key" : "comment",
-          "value" : prototxt[start],
-          "father" : father
+          "key": "comment",
+          "value": prototxt[start],
+          "father": father
         };
         proto_tree_value.push(node);
       } else {
@@ -140,19 +143,20 @@ function append_proto_tree(proto_tree_value, block_tree_childs, father, prototxt
           value = remove_quotation(value);
         }
         var node = {
-          "key" : elements[0].toLowerCase(),
-          "value" : value,
-          "father" : father
+          "key": elements[0].toLowerCase(),
+          "value": value,
+          "father": father
         };
         proto_tree_value.push(node);
       }
     } else {
       var node = {
-        "key" : prototxt[start].toLowerCase(),
-        "value" : [],
-        "father" : father
+        "key": prototxt[start].toLowerCase(),
+        "value": [],
+        "father": father
       };
-      append_proto_tree(node["value"], block_tree_childs[i]["childs"], node, prototxt);
+      append_proto_tree(node["value"], block_tree_childs[i]["childs"], node,
+        prototxt);
       proto_tree_value.push(node);
     }
   }
@@ -161,9 +165,9 @@ function append_proto_tree(proto_tree_value, block_tree_childs, father, prototxt
 // generate the proto tree which contains the proto information
 function get_proto_tree(block_tree, prototxt) {
   var tree = {
-    "key" : "tree",
-    "value" : [],
-    "father" : null
+    "key": "tree",
+    "value": [],
+    "father": null
   };
   append_proto_tree(tree["value"], block_tree["childs"], tree, prototxt);
   return tree;
@@ -177,11 +181,11 @@ function get_layers(proto_tree) {
       var layer_params = proto_tree["value"][i]["value"];
       var layer_key = null;
       var layer_value = {
-        "obj_index" : i,
-        "name" : null,
-        "type" : null,
-        "top" : [],
-        "bottom" : []
+        "obj_index": i,
+        "name": null,
+        "type": null,
+        "top": [],
+        "bottom": []
       };
       // get top and bottom blobs
       for (var j = 0; j < layer_params.length; j++) {
@@ -221,7 +225,8 @@ function get_layers(proto_tree) {
       }
       // check whether the layer name is existed
       if (layers[layer_key] != undefined) {
-        alert("error, more than one layers called " + layers[layer_key]["name"] + ".");
+        alert("error, more than one layers called " + layers[layer_key]["name"] +
+          ".");
       } else {
         layers[layer_key] = layer_value;
       }
@@ -236,24 +241,24 @@ function get_node_data_array(layers) {
   var blobs = {};
   for (var layer_key in layers) {
     node_data_array.push({
-      "key" : layer_key + "_layer",
-      "name" : layers[layer_key]["name"],
-      "category" : layers[layer_key]["type"]
+      "key": layer_key + "_layer",
+      "name": layers[layer_key]["name"],
+      "category": layers[layer_key]["type"]
     });
     for (var i = 0; i < layers[layer_key]["top"].length; i++) {
       var blob_name = layers[layer_key]["top"][i];
       blobs[blob_name + "_blob"] = {
-        "key" : blob_name + "_blob",
-        "name" : blob_name,
-        "category" : "BLOB"
+        "key": blob_name + "_blob",
+        "name": blob_name,
+        "category": "BLOB"
       };
     }
     for (var i = 0; i < layers[layer_key]["bottom"].length; i++) {
       var blob_name = layers[layer_key]["bottom"][i];
       blobs[blob_name + "_blob"] = {
-        "key" : blob_name + "_blob",
-        "name" : blob_name,
-        "category" : "BLOB"
+        "key": blob_name + "_blob",
+        "name": blob_name,
+        "category": "BLOB"
       };
     }
   }
@@ -270,18 +275,18 @@ function get_link_data_array(layers) {
     var top_array = layers[layer_key]["top"];
     for (var i = 0; i < bottom_array.length; i++) {
       link_data_array.push({
-        "from" : bottom_array[i] + "_blob",
-        "to" : layer_key + "_layer",
-        "fromPort" : "T",
-        "toPort" : "B"
+        "from": bottom_array[i] + "_blob",
+        "to": layer_key + "_layer",
+        "fromPort": "T",
+        "toPort": "B"
       });
     }
     for (var i = 0; i < top_array.length; i++) {
       link_data_array.push({
-        "from" : layer_key + "_layer",
-        "to" : top_array[i] + "_blob",
-        "fromPort" : "T",
-        "toPort" : "B"
+        "from": layer_key + "_layer",
+        "to": top_array[i] + "_blob",
+        "fromPort": "T",
+        "toPort": "B"
       });
     }
   }
