@@ -4,319 +4,15 @@
 <title>连连看</title>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <script src="go.js"></script>
-<link href="./assets/css/genproto.css" rel="stylesheet" type="text/css" /> 
-<script src="genproto.js"></script>  
+<link href="./assets/css/genproto.css" rel="stylesheet" type="text/css" />
+<script src="genproto.js"></script>
 <script id="code">
 
   var lastStroked = null;  // this remembers the last highlit Shape
 
-  function init() {
-    if (window.genProto) genProto();  // init for these samples -- you don't need to call this
-    var $ = go.GraphObject.make;  // for conciseness in defining templates
-
-    myDiagram =
-      $(go.Diagram, "myDiagram",  // must name or refer to the DIV HTML element
-        {
-          initialContentAlignment: go.Spot.Center,
-          allowDrop: true,  // must be true to accept drops from the Palette
-          "toolManager.mouseWheelBehavior": go.ToolManager.WheelZoom, // enable mouse wheel event
-          "LinkDrawn": showLinkLabel,  // this DiagramEvent listener is defined below
-          "LinkRelinked": showLinkLabel,
-          "animationManager.duration": 800, // slightly longer than default (600ms) animation
-          "ChangedSelection": onSelectionChanged,
-          "TextEdited": onTextEdited,
-          mouseOver: doMouseOver, 
-          "undoManager.isEnabled": true  // enable undo & redo
-        });
-
-    // when the document is modified, add a "*" to the title and enable the "Save" button
-    myDiagram.addDiagramListener("Modified", function(e) {
-      var button = document.getElementById("SaveButton");
-      if (button) button.disabled = !myDiagram.isModified;
-      var idx = document.title.indexOf("*");
-      if (myDiagram.isModified) {
-        if (idx < 0) document.title += "*";
-      } else {
-        if (idx >= 0) document.title = document.title.substr(0, idx);
-      }
-    });
-
-    // helper definitions for node templates
-
-    function nodeStyle() {
-      return [
-        // The Node.location comes from the "loc" property of the node data,
-        // converted by the Point.parse static method.
-        // If the Node.location is changed, it updates the "loc" property of the node data,
-        // converting back using the Point.stringify static method.
-        new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
-        {
-          // the Node.location is at the center of each node
-          locationSpot: go.Spot.Center,
-          //isShadowed: true,
-          //shadowColor: "#888",
-          // handle mouse enter/leave events to show/hide the ports
-          mouseEnter: function (e, obj) { showPorts(obj.part, true); },
-          mouseLeave: function (e, obj) { showPorts(obj.part, false); }
-        }
-      ];
-    }
-
-    // Define a function for creating a "port" that is normally transparent.
-    // The "name" is used as the GraphObject.portId, the "spot" is used to control how links connect
-    // and where the port is positioned on the node, and the boolean "output" and "input" arguments
-    // control whether the user can draw links from or to the port.
-    function makePort(name, spot, output, input) {
-      // the port is basically just a small circle that has a white stroke when it is made visible
-      return $(go.Shape, "Circle",
-               {
-                  fill: "transparent",
-                  stroke: null,  // this is changed to "white" in the showPorts function
-                  desiredSize: new go.Size(8, 8),
-                  alignment: spot, alignmentFocus: spot,  // align the port on the main Shape
-                  portId: name,  // declare this object to be a "port"
-                  fromSpot: spot, toSpot: spot,  // declare where links may connect at this port
-                  fromLinkable: output, toLinkable: input,  // declare whether the user may draw links to/from here
-                  cursor: "pointer"  // show a different cursor to indicate potential link point
-               });
-    }
-
-
-    function textStyle() {
-      return { font: "bold 11pt Helvetica, Arial, sans-serif", stroke: "white" };
-    }
-
-    //////////////////////////////// BEGIN: MOUSEOVER /////////////////////////////////
-    function doMouseOver(e) {
-      if (e === undefined) e = myDiagram.lastInput;
-      var doc = e.documentPoint;
-      // find all Nodes that are within 100 units
-      var list = myDiagram.findObjectsNear(doc, 100, null, function(x) { return x instanceof go.Node; });
-      // now find the one that is closest to e.documentPoint
-      var closest = null;
-      var closestDist = 999999999;
-      list.each(function(node) {
-        var dist = doc.distanceSquaredPoint(node.getDocumentPoint(go.Spot.Center));
-        if (dist < closestDist) {
-          closestDist = dist;
-          closest = node;
-        }
-      });
-      highlightNode(e, closest);
-    }
-
-    // Called with a Node (or null) that the mouse is over or near
-    function highlightNode(e, node) {
-      if (node !== null) {
-        var shape = node.findObject("SHAPE");
-        shape.stroke = "gray";
-        if (lastStroked !== null && lastStroked !== shape) lastStroked.stroke = null;
-        lastStroked = shape;
-        updateInfoBox(e.viewPoint, node.data);
-      } else {
-        if (lastStroked !== null) lastStroked.stroke = null;
-        lastStroked = null;
-        document.getElementById("infoBoxHolder").innerHTML = "";
-      }
-    }
-
-    var diagramDiv = document.getElementById("myDiagram");
-    // Make sure the infoBox is hidden when the mouse is not over the Diagram
-    diagramDiv.addEventListener("mouseout", function(e) {
-      if (lastStroked !== null) lastStroked.stroke = null;
-      lastStroked = null;
-
-      var infoBox = document.getElementById("infoBox");
-      var elem = document.elementFromPoint(e.clientX, e.clientY);
-      if (elem === infoBox || elem.parentNode === infoBox) {
-        var box = document.getElementById("infoBoxHolder");
-        box.style.left = parseInt(box.style.left) + "px";
-        box.style.top = parseInt(box.style.top)+30 + "px";
-      } else {
-        var box = document.getElementById("infoBoxHolder");
-        box.innerHTML = "";
-      }
-    }, false);
-
-    // This function is called to update the tooltip information
-    // depending on the bound data of the Node that is closest to the pointer.
-    function updateInfoBox(mousePt, data) {
-      var box = document.getElementById("infoBoxHolder");
-      if (data.category == "CONVOLUTION") {
-        var x =
-        "<div id='infoBox'>" +
-        "<div>" + data.name;
-        var str_num_output = "";
-        var str_kernel_size = " ";
-        var str_map_size = " ";
-        if (data.num_output) {
-          str_num_output += ":" + data.num_output;
-        }
-        if (data.kernel_size) {
-          str_kernel_size += data.kernel_size+"*"+data.kernel_size + "filters";
-        }
-        if (data._map_hsize && data._map_wsize) {
-          str_map_size += "@" + data._map_hsize+"*"+data._map_wsize
-        }
-        x +=  str_num_output + str_kernel_size + str_map_size + "</div></div>";           
-
-        box.innerHTML = x;
-        box.style.left = mousePt.x+300 + "px";
-        box.style.top = mousePt.y+ 70 + "px";
-      }
-      else {
-        box.innerHTML = "";
-      }
-    }
-    //////////////////////////////// END /////////////////////////////////
-
-    // define the Node templates for regular nodes
-
-    var lightText = 'black';
-
-    myDiagram.nodeTemplateMap.add("",  // the default category
-      $(go.Node, "Spot", nodeStyle(),
-        // the main object is a Panel that surrounds a TextBlock with a rectangular Shape
-        $(go.Panel, "Auto",
-          $(go.Shape, "RoundedRectangle",
-            { name: "SHAPE", strokeWidth: 3, fill: "#6797eb", stroke: null },
-            new go.Binding("figure", "figure")),
-          $(go.TextBlock,
-            {
-              font: "bold 11pt Helvetica, Arial, sans-serif",
-              stroke: lightText,
-              margin: 8,
-              maxSize: new go.Size(160, NaN),
-              wrap: go.TextBlock.WrapFit,
-              editable: true,
-              isMultiline: false
-            },
-            new go.Binding("text", "name").makeTwoWay())
-        ),
-        // four named ports, one on each side:
-        makePort("T", go.Spot.Top, true, false),
-        makePort("L", go.Spot.Left, true, true),
-        makePort("R", go.Spot.Right, true, true),
-        makePort("B", go.Spot.Bottom, false, true)
-      ));
-
-    myDiagram.nodeTemplateMap.add("BLOB",  // the default category
-      $(go.Node, "Spot", nodeStyle(),
-        // the main object is a Panel that surrounds a TextBlock with a rectangular Shape
-        $(go.Panel, "Auto",
-          $(go.Shape, "Ellipse",
-            { name: "SHAPE", strokeWidth: 3, fill: "#f0e691", stroke: null },
-            new go.Binding("figure", "figure")),
-          $(go.TextBlock,
-            {
-              font: "bold 11pt Helvetica, Arial, sans-serif",
-              stroke: lightText,
-              margin: 8,
-              maxSize: new go.Size(160, NaN),
-              wrap: go.TextBlock.WrapFit,
-              editable: true,
-              isMultiline: false
-            },
-            new go.Binding("text", "name").makeTwoWay())
-        ),
-        // four named ports, one on each side:
-        makePort("T", go.Spot.Top, true, false),
-        makePort("L", go.Spot.Left, true, true),
-        makePort("R", go.Spot.Right, true, true),
-        makePort("B", go.Spot.Bottom, false, true)
-      ));
-
-    // replace the default Link template in the linkTemplateMap
-    myDiagram.linkTemplate =
-      $(go.Link,  // the whole link panel
-        {
-          routing: go.Link.AvoidsNodes,
-          curve: go.Link.JumpOver,
-          corner: 5, toShortLength: 4,
-          relinkableFrom: true,
-          relinkableTo: true,
-          reshapable: true
-        },
-        new go.Binding("points").makeTwoWay(),
-        $(go.Shape,  // the link path shape
-          { isPanelMain: true, stroke: "gray", strokeWidth: 2 }),
-        $(go.Shape,  // the arrowhead
-          { toArrow: "standard", stroke: null, fill: "gray"}),
-        $(go.Panel, "Auto",  // the link label, normally not visible
-          { visible: false, name: "LABEL", segmentIndex: 2, segmentFraction: 0.5},
-          new go.Binding("visible", "visible").makeTwoWay(),
-          $(go.Shape, "RoundedRectangle",  // the label shape
-            { fill: "#F8F8F8", stroke: null }),
-          $(go.TextBlock, "Yes",  // the label
-            {
-              textAlign: "center",
-              font: "10pt helvetica, arial, sans-serif",
-              stroke: "#333333",
-              editable: true
-            },
-            new go.Binding("text", "text").makeTwoWay())
-        )
-      );
-
-    // Make link labels visible if coming out of a "conditional" node.
-    // This listener is called by the "LinkDrawn" and "LinkRelinked" DiagramEvents.
-    function showLinkLabel(e) {
-      var label = e.subject.findObject("LABEL");
-      if (label !== null) label.visible = (e.subject.fromNode.data.figure === "Diamond");
-    }
-
-    // temporary links used by LinkingTool and RelinkingTool are also orthogonal:
-    myDiagram.toolManager.linkingTool.temporaryLink.routing = go.Link.Orthogonal;
-    myDiagram.toolManager.relinkingTool.temporaryLink.routing = go.Link.Orthogonal;
-
-    load();  // load an initial diagram from some JSON text
-
-    // initialize the Palette that is on the left side of the page
-    BlobPalette =
-      $(go.Palette, "BLOB",  // must name or refer to the DIV HTML element
-        {
-          "animationManager.duration": 800, // slightly longer than default (600ms) animation
-          nodeTemplateMap: myDiagram.nodeTemplateMap,  // share the templates used by myDiagram
-          model: new go.GraphLinksModel([  // specify the contents of the Palette
-            { category: "BLOB",name: "Blob", figure: "Ellipse"},
-          ])
-        });
-
-
-    myPalette =
-      $(go.Palette, "myPalette",  // must name or refer to the DIV HTML element
-        {
-          "animationManager.duration": 800, // slightly longer than default (600ms) animation
-          nodeTemplateMap: myDiagram.nodeTemplateMap,  // share the templates used by myDiagram
-          model: new go.GraphLinksModel([  // specify the contents of the Palette
-            { name: "DATA" , category: "DATA"},
-            { name: "RAW_DATA" , category: "RAW_DATA"},
-            { name: "IMAGE_DATA" , category: "IMAGE_DATA"},
-            { name: "DUMMY_DATA" , category: "DUMMY_DATA"},
-            { name: "MEMORY_DATA", category: "MEMORY_DATA" },
-            { name: "PAIR_DATA" , category: "PAIR_DATA"},
-          ])
-        });
-
-    myPalette1 =
-      $(go.Palette, "myPalette1",  // must name or refer to the DIV HTML element
-        {
-          "animationManager.duration": 800, // slightly longer than default (600ms) animation
-          nodeTemplateMap: myDiagram.nodeTemplateMap,  // share the templates used by myDiagram
-          model: new go.GraphLinksModel([  // specify the contents of the Palette
-            { name: "CONVOLUTION", category: "CONVOLUTION" },
-            { name: "POOLING", category: "POOLING" },
-            { name: "SOFTMAX_LOSS", category: "SOFTMAX_LOSS" },
-            { name: "ACCURACY", category: "ACCURACY" },
-            { name: "RELU", category: "RELU" },
-            { name: "SIDMOID", category: "SIDMOID" },
-            { name: "DROPOUT", category: "DROPOUT" },
-            { name: "CONCAT", category: "CONCAT" },
-            { name: "BN", category: "BN" },
-          ])
-        });
-
-  }
+</script>
+<script src="assets/js/main.js"></script>
+<script>
 
   // Make all ports on a node visible when the mouse is over the node
   function showPorts(node, show) {
@@ -377,7 +73,7 @@
       content_td.appendChild(select);
       tr.appendChild(label_td);
       tr.appendChild(content_td);
-      parentdiv.appendChild(tr);    
+      parentdiv.appendChild(tr);
   }
 
   function appendFillerNodes(parentdiv, param) {
@@ -423,7 +119,7 @@
       for (var i = 0; i < _filler_info.length; ++i) {
         var tr1 = document.createElement('tr');
         var label_td1 = document.createElement('td');
-        var content_td1 = document.createElement('td');      
+        var content_td1 = document.createElement('td');
         //label_td1.innerHTML = "value: ";
         label_td1.innerHTML = _filler_info[i]+":";
         label_td1.setAttribute("style", "float:right;");
@@ -442,14 +138,14 @@
   function appendParameters(param_list, category) {
     var parentdiv = document.getElementById("propertiesTable");
     // remove all elements except 'name'
-    var childnode_list = parentdiv.childNodes; 
+    var childnode_list = parentdiv.childNodes;
     var childnode_num = childnode_list.length;
     //console.log(childnode_list);
     var child_start = 2;
     for (var i = child_start; i < childnode_num; ++i) {
       parentdiv.removeChild(childnode_list[child_start]);
     }
-    // append new elements 
+    // append new elements
     if (category != "BLOB") {
       apppendSelectNodes(parentdiv, "phase");
     }
@@ -458,7 +154,7 @@
       for (var i = 0; i < param_num; ++i) {
         if (param_list[i] == "weight_filler" || param_list[i] == "bias_filler" ||
             param_list[i] == "scale_filler" || param_list[i] == "shift_filler" || param_list[i] == "data_filler") {
-          appendFillerNodes(parentdiv, param_list[i]);      
+          appendFillerNodes(parentdiv, param_list[i]);
         }
         else if (param_list[i].search("filler") >= 0) {
           continue;
@@ -472,7 +168,7 @@
 
   function get_param_list(_raw_param) {
     var param_list = [];
-    if (_raw_param) {        
+    if (_raw_param) {
       var _param = _raw_param[0];
       //console.log(_param);
       for (var _key_param in _param) {
@@ -497,7 +193,7 @@
 
   function get_param_default(_raw_param) {
     var param_default = {};
-    if (_raw_param) {        
+    if (_raw_param) {
       var _param = _raw_param[0];
       //console.log(_param);
       for (var _key_param in _param) {
@@ -555,7 +251,7 @@
       if (category != "BLOB") {
         document.getElementById("phase").value = data.phase || "";
       }
-      if (param_list) {  
+      if (param_list) {
         var param_num = param_list.length;
         for (var i = 0; i < param_num; ++i) {
           if (param_list[i].search("filler") < 0) {
@@ -571,7 +267,7 @@
               }
               document.getElementById(param_list[i] + "_type").value = data[param_list[i]+"_type"] || "xavier";
               show_network_filler(data, document.getElementById(param_list[i] + "_type").value, param_list[i]);
-            } else if (param_list[i] == "bias_filler" || 
+            } else if (param_list[i] == "bias_filler" ||
                        param_list[i] == "scale_filler" ||
                        param_list[i] == "shift_filler" ||
                        param_list[i] == "data_filler" ) {
@@ -584,11 +280,11 @@
               show_network_filler(data, document.getElementById(param_list[i] + "_type").value, param_list[i]);
             }
           }
-          
+
           //console.log('data.'+param_list[i]);
         }
       }
-      if (param_default) {  
+      if (param_default) {
         for (var _key_param in param_default) {
           if (document.getElementById(_key_param)) {
             document.getElementById(_key_param).placeholder = param_default[_key_param];
@@ -685,7 +381,7 @@
         res = '\t' + field + ": \"" + _data[field] + '\"\n';
       } else {
         res = '\t' + field + ": " + _data[field] + '\n';
-      }   
+      }
     }
     //console.log(res);
     return res;
@@ -704,7 +400,7 @@
     var pre = "\t\t\t";
     var res = pre + "type: \"" + type + "\"\n";
     if (type == "constant") {
-      if (!obj[key+"_value"]) { 
+      if (!obj[key+"_value"]) {
         if (key == "scale_filler") {
           obj[key+"_value"] = 1;
         } else {
@@ -756,7 +452,7 @@
               _layer[param_list[j]] = _data[param_list[j]];
             }
           }
-        }        
+        }
         if (_data["phase"]) {
           _layer["phase"] = _data["phase"];
         }
@@ -774,26 +470,26 @@
       if(from_obj.category != "BLOB" && to_obj.category == "BLOB") { // from layer to blob
         if (!from_obj["top"]) {
           _map[_edge["from"]]["top"] = [];
-        } 
+        }
         _map[_edge["from"]]["top"].push(to_obj["name"]);
-      } 
+      }
       else if (from_obj.category == "BLOB" && to_obj.category != "BLOB") { // from blob to layer
         if (!to_obj["bottom"]) {
           _map[_edge["to"]]["bottom"] = [];
         }
         _map[_edge["to"]]["bottom"].push(from_obj["name"]);
-      } 
+      }
       else if (from_obj.category != "BLOB" && to_obj.category != "BLOB") {
         console.log("Not allowed both layers!");
         alert("Layers are not allowed to connect to layers directly!");
         return;
-      } 
+      }
       else if (from_obj.category == "BLOB" && to_obj.category == "BLOB") {
         console.log("Not allowed both blob!");
         alert("Blobs are not allowed to connect to Blobs directly!");
         return;
       }
-    } 
+    }
 
     //console.log(_map);
 
@@ -801,7 +497,7 @@
       var obj = _map[index];
       if (obj.category != "BLOB") {
         var _layer_str = "layers {\n";
-        
+
         _layer_str += get_data_str(obj, "name");
         _layer_str += get_data_str(obj, "category");
         if ( obj["top"]) {
@@ -855,9 +551,9 @@
         }
         _layer_str += "}\n";
 
-        prototxt += _layer_str;        
+        prototxt += _layer_str;
       }
-    } 
+    }
 
     return prototxt;
   }
@@ -885,7 +581,7 @@
     svg.style.border = "1px solid black";
     obj = document.getElementById("SVGArea");
     obj.appendChild(svg);
-    if (obj.children.length > 0) 
+    if (obj.children.length > 0)
       obj.replaceChild(svg, obj.children[0]);
   }
 
@@ -944,37 +640,37 @@ function clickUpload() {
   document.getElementById("upload_file").click();
 }
 
-function uploadAndSubmit() { 
+function uploadAndSubmit() {
 
   if (document.getElementById("upload_file").files.length === 0) { return; }
   var file = document.getElementById("upload_file").files[0];
   //if (file.type != "text/plain") {
-  //  alert("Invalid file type!"); 
+  //  alert("Invalid file type!");
   //  return;
   //}
 
-  var reader = new FileReader(); 
+  var reader = new FileReader();
 
-  reader.onloadstart = function() { 
-     console.log("onloadstart"); 
-  } 
-  reader.onprogress = function(p) { 
-     console.log("onprogress"); 
-  } 
+  reader.onloadstart = function() {
+     console.log("onloadstart");
+  }
+  reader.onprogress = function(p) {
+     console.log("onprogress");
+  }
 
-  reader.onload = function() { 
-     console.log("load complete"); 
-  } 
+  reader.onload = function() {
+     console.log("load complete");
+  }
 
-  reader.onloadend = function() { 
-      if (reader.error) { 
-         console.log(reader.error); 
-      } else { 
+  reader.onloadend = function() {
+      if (reader.error) {
+         console.log(reader.error);
+      } else {
          document.getElementById("prototxt").value = reader.result;
-      } 
-  } 
+      }
+  }
 
-  reader.readAsText(file); 
+  reader.readAsText(file);
 }
 </script>
 <script>
@@ -992,396 +688,9 @@ function unique(arr) {
   }
   return result;
 }
-
-function compute_attr_info(_node_data_array, _link_data_array) {
-  //document.getElementById("model_size").innerHTML = compute_model_size(_node_data_array, _link_data_array);
-  //document.getElementById("data_memory").innerHTML = compute_data_memory(_node_data_array, _link_data_array);
-}
-
-function compute_model_size(_node_data_array, _link_data_array) {
-  var _node_data_num = _node_data_array.length;
-  var _link_data_num = _link_data_array.length;
-  var _map = {};
-  var _struct_list = [];
-  // parse layers
-  for (var i = 0 ; i < _node_data_num; ++i) {
-    var _data = _node_data_array[i];
-    var _layer = {};
-
-    _layer["key"] = _data["key"];
-    _layer["name"] = _data["name"];
-    _layer["category"] = _data["category"];
-    if (_data.category != 'BLOB') {
-      var param_list = get_param_list(_layers[_data.category]);
-      if (param_list) {
-        var param_num = param_list.length;
-        for (var j = 0; j < param_num; ++j) {
-          if (_data[param_list[j]]) {
-            _layer[param_list[j]] = _data[param_list[j]];
-          }
-        }
-      }        
-      if (_data["phase"]) {
-        _layer["phase"] = _data["phase"];
-      }
-
-    }
-    _map[_data["key"]] = _layer;
-  }
-  // parse over
-
-  _edge_to = {};
-
-  for (var i = 0; i < _link_data_num; ++i) {
-    if (!_edge_to[_link_data_array[i]["to"]]) {
-      _edge_to[_link_data_array[i]["to"]] = [];
-    }
-    _link_data_array[i]["points"] = [];
-    _link_data_array[i]["fromPort"] = "T";
-    _link_data_array[i]["toPort"] = "B";
-    _edge_to[_link_data_array[i]["to"]].push(_edge_to[_link_data_array[i]["from"]]);
-  }
-  // select bottom
-  var bottom_list = [];
-  for (var _key in _map) {
-    if (!_edge_to[_key]) {
-      bottom_list.push(_map[_key]);
-    }
-  }
-
-  var cur_bottom = bottom_list;
-
-  for (var i = 0; i < cur_bottom.length; ++i) {
-    if (cur_bottom[i].width && cur_bottom[i].height) {
-      cur_bottom[i]._map_wsize = cur_bottom[i].width;
-      cur_bottom[i]._map_hsize = cur_bottom[i].height;
-    }
-  }
-
-  console.log(cur_bottom);
-
-  var model_size = 0;
-  var calculation = 0;
-
-  while(cur_bottom.length) {
-    var layer_cur_top = [];
-    for (var j = 0; j < cur_bottom.length; ++j) {
-      var cur_top = [];     
-      for (var i = 0; i < _link_data_num; ++i) {
-        if (_link_data_array[i]["from"] == cur_bottom[j].key) {
-          cur_top.push(_map[_link_data_array[i]["to"]]);
-        }
-      }
-      console.log(cur_bottom[j]);
-      for (var i = 0; i < cur_top.length; ++i) {
-        if (cur_top[i].category == "CONVOLUTION" || cur_top[i].category == "INNER_PRODUCT") {
-          if (cur_bottom[j].kernel_h && cur_bottom[j].kernel_w 
-            && cur_bottom[j].stride && cur_bottom[j].num_output && cur_top[i].num_output) {
-            var tmp_num = (cur_bottom[j].kernel_h * cur_bottom[j].kernel_w 
-              * cur_bottom[j].num_output * cur_top[i].num_output)/(cur_bottom[j].stride*cur_bottom[j].stride);
-            model_size += tmp_num;
-            calculation += tmp_num*cur_bottom[j]._map_wsize*cur_bottom[j]._map_hsize;
-          } else if (cur_bottom[j].kernel_size && cur_bottom[j].stride 
-            && cur_bottom[j].num_output && cur_top[i].num_output) {
-            var tmp_num = (cur_bottom[j].kernel_size * cur_bottom[j].kernel_size 
-              * cur_bottom[j].num_output * cur_top[i].num_output)/(cur_bottom[j].stride*cur_bottom[j].stride);
-            model_size += tmp_num;
-            calculation += tmp_num*cur_bottom[j]._map_wsize*cur_bottom[j]._map_hsize;
-          } 
-        } else {
-          cur_top[i]._map_wsize = cur_bottom[j]._map_wsize;
-          cur_top[i]._map_hsize = cur_bottom[j]._map_hsize;
-        }
-        layer_cur_top.push(cur_top[i]);
-        for (var k = 0; k < _node_data_num; ++k) {
-          if (_node_data_array[k].key == cur_top[i].key) {
-            _node_data_array[k]._map_wsize = cur_top[i]._map_wsize;
-            _node_data_array[k]._map_hsize = cur_top[i]._map_hsize;
-            break;
-          }
-        }
-      }
-    }
-    // update current bottom
-    //layer_cur_top = unique(layer_cur_top);
-    cur_bottom = layer_cur_top;
-    //console.log(cur_bottom);
-  }  
-  console.log(calculation);
-  return model_size;
-}
-
-function compute_data_memory(_node_data_array, _link_data_array) {
-  return 0;
-}
-
-function gen_map_size_from_struct(_node_data_array, _link_data_array) {
-  var _node_data_num = _node_data_array.length;
-  var _link_data_num = _link_data_array.length;
-  var _map = {};
-  var _struct_list = [];
-  // parse layers
-  for (var i = 0 ; i < _node_data_num; ++i) {
-    var _data = _node_data_array[i];
-    var _layer = {};
-
-    _layer["key"] = _data["key"];
-    _layer["name"] = _data["name"]
-    _layer["category"] = _data["category"]
-    if (_data.category != 'BLOB') {
-      var param_list = get_param_list(_layers[_data.category]);
-      if (param_list) {
-        var param_num = param_list.length;
-        for (var j = 0; j < param_num; ++j) {
-          if (_data[param_list[j]]) {
-            _layer[param_list[j]] = _data[param_list[j]];
-          }
-        }
-      }        
-      if (_data["phase"]) {
-        _layer["phase"] = _data["phase"];
-      }
-
-    }
-    _map[_data["key"]] = _layer;
-  }
-  // parse over
-
-  _edge_to = {};
-
-  for (var i = 0; i < _link_data_num; ++i) {
-    if (!_edge_to[_link_data_array[i]["to"]]) {
-      _edge_to[_link_data_array[i]["to"]] = [];
-    }
-    _link_data_array[i]["points"] = [];
-    _link_data_array[i]["fromPort"] = "T";
-    _link_data_array[i]["toPort"] = "B";
-    _edge_to[_link_data_array[i]["to"]].push(_edge_to[_link_data_array[i]["from"]]);
-  }
-  // select bottom
-  var bottom_list = [];
-  for (var _key in _map) {
-    if (!_edge_to[_key]) {
-      bottom_list.push(_map[_key]);
-    }
-  }
-
-  var cur_bottom = bottom_list;
-
-  for (var i = 0; i < cur_bottom.length; ++i) {
-    if (cur_bottom[i].width && cur_bottom[i].height) {
-      cur_bottom[i]._map_wsize = cur_bottom[i].width;
-      cur_bottom[i]._map_hsize = cur_bottom[i].height;
-    }
-  }
-
-  console.log(cur_bottom);
-
-  var model_size = 0;
-  var calculation = 0;
-
-  while(cur_bottom.length) {
-    var layer_cur_top = [];
-    for (var j = 0; j < cur_bottom.length; ++j) {
-      var cur_top = [];
-      for (var i = 0; i < _link_data_num; ++i) {
-        if (_link_data_array[i]["from"] == cur_bottom[j].key) {
-          cur_top.push(_map[_link_data_array[i]["to"]]);
-        }
-      }
-      for (var i = 0; i < cur_top.length; ++i) {
-        if (cur_top[i].category == "CONVOLUTION" || cur_top[i].category == "POOLING") {
-          if (cur_top[i].kernel_h && cur_top[i].kernel_w && cur_top[i].stride) {
-            cur_top[i]._map_wsize = (cur_bottom[j]._map_wsize - cur_top[i].kernel_w)/cur_top[i].stride + 1;
-            cur_top[i]._map_hsize = (cur_bottom[j]._map_hsize - cur_top[i].kernel_h)/cur_top[i].stride + 1;
-          } else if (cur_top[i].kernel_size && cur_top[i].stride) {
-            cur_top[i]._map_wsize = (cur_bottom[j]._map_wsize - cur_top[i].kernel_size)/cur_top[i].stride + 1;
-            cur_top[i]._map_hsize = (cur_bottom[j]._map_hsize - cur_top[i].kernel_size)/cur_top[i].stride + 1;
-          }
-        } else {
-          cur_top[i]._map_wsize = cur_bottom[j]._map_wsize;
-          cur_top[i]._map_hsize = cur_bottom[j]._map_hsize;
-        }
-        layer_cur_top.push(cur_top[i]);
-        for (var k = 0; k < _node_data_num; ++k) {
-          if (_node_data_array[k].key == cur_top[i].key) {
-            _node_data_array[k]._map_wsize = cur_top[i]._map_wsize;
-            _node_data_array[k]._map_hsize = cur_top[i]._map_hsize;
-            break;
-          }
-        }
-
-        if ( cur_bottom[j].category == "CONVOLUTION" 
-          && (cur_top[i].category == "CONVOLUTION" || cur_top[i].category == "INNER_PRODUCT")) {
-          if (cur_bottom[j].kernel_h && cur_bottom[j].kernel_w 
-            && cur_bottom[j].stride && cur_bottom[j].num_output && cur_top[i].num_output) {
-            var tmp_num = (cur_bottom[j].kernel_h * cur_bottom[j].kernel_w 
-              * cur_bottom[j].num_output * cur_top[i].num_output)/(cur_bottom[j].stride*cur_bottom[j].stride);
-            model_size += tmp_num;
-            calculation += tmp_num*cur_bottom[j]._map_wsize*cur_bottom[j]._map_hsize;
-          } else if (cur_bottom[j].kernel_size && cur_bottom[j].stride 
-            && cur_bottom[j].num_output && cur_top[i].num_output) {
-            var tmp_num = (cur_bottom[j].kernel_size * cur_bottom[j].kernel_size 
-              * cur_bottom[j].num_output * cur_top[i].num_output)/(cur_bottom[j].stride*cur_bottom[j].stride);
-            model_size += tmp_num;
-            calculation += tmp_num*cur_bottom[j]._map_wsize*cur_bottom[j]._map_hsize;
-          } 
-        }        
-      }
-    }
-    // update current bottom
-    //layer_cur_top = unique(layer_cur_top);
-    cur_bottom = layer_cur_top;
-    //console.log(cur_bottom);
-  }  
-  document.getElementById("model_size").innerHTML = model_size;
-  document.getElementById("data_memory").innerHTML = 0;
-  document.getElementById("calculation").innerHTML = calculation;
-}
-
-function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
-  // modified nodeDataArray loc
-  var _node_data_num = _node_data_array.length;
-  var _link_data_num = _link_data_array.length;
-  var _map = {};
-  var start_x = -45;
-  var start_y = 325;
-  var delta_x = 100;
-  var delta_y = -80;
-  var _struct_list = [];
-  // parse layers
-  for (var i = 0 ; i < _node_data_num; ++i) {
-    var _data = _node_data_array[i];
-    var _layer = {};
-
-    _layer["name"] = _data["name"]
-    _layer["category"] = _data["category"]
-    if (_data.category != 'BLOB') {
-      var param_list = get_param_list(_layers[_data.category]);
-      if (param_list) {
-        var param_num = param_list.length;
-        for (var j = 0; j < param_num; ++j) {
-          if (_data[param_list[j]]) {
-            _layer[param_list[j]] = _data[param_list[j]];
-          }
-        }
-      }        
-      if (_data["phase"]) {
-        _layer["phase"] = _data["phase"];
-      }
-    }
-    _map[_data["key"]] = _layer;
-  }
-
-  //console.log(_map);
-  //console.log(_link_data_array);
-  
-  _edge_to = {};
-  _edge_from = {};
-
-  for (var i = 0; i < _link_data_num; ++i) {
-    if (!_edge_to[_link_data_array[i]["to"]]) {
-      _edge_to[_link_data_array[i]["to"]] = [];
-    }
-    if (!_edge_from[_link_data_array[i]["from"]]) {
-      _edge_from[_link_data_array[i]["from"]] = [];
-    }
-    _link_data_array[i]["points"] = [];
-    _link_data_array[i]["fromPort"] = "T";
-    _link_data_array[i]["toPort"] = "B";
-    _edge_to[_link_data_array[i]["to"]].push(_edge_to[_link_data_array[i]["from"]]);
-    _edge_from[_link_data_array[i]["from"]].push(_edge_from[_link_data_array[i]["to"]]);
-  }
-  // select bottom and top
-  var bottom_list = [];
-  var top_list = [];
-  for (var _key in _map) {
-    if (!_edge_to[_key]) {
-      bottom_list.push(_key);
-    }
-    if (!_edge_from[_key]) {
-      top_list.push(_key);
-    }
-  }
-
-  //console.log(bottom_list);
-  //console.log(top_list);
-
-  var cur_bottom = bottom_list;
-  var cur_start_x = start_x - (cur_bottom.length-1.0)/2*delta_x;
-  for (var i = 0; i < cur_bottom.length; ++i) {
-    for (var j = 0; j < _node_data_num; ++j) {
-      if (_node_data_array[j]["key"] == cur_bottom[i]) {
-        _node_data_array[j]["loc"] = get_loc(start_x+i*delta_x, start_y);
-        break;
-      }
-    }
-  }
-
-  var depth = 1;
-  var visited_list = {};
-  while(cur_bottom.length > 0) {  
-    var cur_top = [];
-    for (var i = 0; i < _link_data_num; ++i) {
-      for (var j = 0; j < cur_bottom.length; ++j) {
-        if (visited_list[cur_bottom[j]]) { 
-          continue; 
-        }
-        if(_link_data_array[i]["from"] == cur_bottom[j]) {
-          cur_top.push(_link_data_array[i]["to"]);
-        }
-      }
-    }
-    for (var i = 0; i < cur_bottom.length; ++i) {
-      if (!visited_list[cur_bottom[i]]) {
-        visited_list[cur_bottom[i]] = 1;
-      }
-    }
-    var hit_num = 0;
-    var j_list = {};
-    var tmp_cur_top = [];
-    for (var i = 0; i < top_list.length; ++i) {
-      for (var j = 0; j < cur_top.length; ++j) {
-        if (cur_top[j] == top_list[i]) {
-          j_list[j] = 1;
-          hit_num++;
-          break;
-        }
-      }
-    }
-    for (var i = 0; i < cur_top.length; ++i) {
-      if(!j_list[i]){
-        tmp_cur_top.push(cur_top[i]);
-      }
-    }
-    if (tmp_cur_top.length > 0){
-      cur_top = tmp_cur_top;
-    }
-    cur_top = unique(cur_top);
-
-    var cur_top_num = cur_top.length;
-
-    var cur_start_x = start_x - (cur_top_num-1.0)/2*delta_x;
-    for (var j = 0; j < cur_top_num; ++j) {
-      for (var k = 0; k < _node_data_num; ++k) {
-        if (_node_data_array[k]["key"] == cur_top[j]) {
-          _node_data_array[k]["loc"] = get_loc(cur_start_x+j*delta_x, start_y + depth*delta_y);
-          break;
-        }
-      }
-    }
-  
-    cur_bottom = cur_top;
-    depth += 1;
-    if (depth > 200) {
-      alert("Warning: Network is too complicated!");
-      break;
-    }
-  }
-  _model["nodeDataArray"] = _node_data_array;
-  return _model.toJson();
-}
-
+</script>
+<script src="assets/js/stat.js"></script>
+<script>
 function gen_simplified_struct() {
   save();
 
@@ -1393,257 +702,7 @@ function gen_simplified_struct() {
   load();
 }
 
-/*
 
-function find_all(source, pattern) {
-  var index = [];
-  for (var i = 0; i < source.length - pattern.length + 1; i++) {
-    for (var j = 0; j < pattern.length; j++) {
-      if (source[i+j] != pattern[j]) {
-        break;
-      }
-      if (j == pattern.length - 1) {
-        index.push(i);
-      }
-    }
-  }
-  return index;
-}
-
-function split_text(source, index) {
-  var result = [];
-  for (var i = 0; i < index.length - 1; i++) {
-    result.push(source.substr(index[i], index[i+1]-index[i]));
-  }
-  return result;
-}
-
-function trim(source) {
-  var result = "";
-  for (var i = 0; i < source.length; i++) {
-    if (source[i] != '{' && source[i] != '}' && source[i] != ' ' && source[i] != '\n' && source[i] != '\t') {
-      result += source[i];
-    }
-  }
-  return result;
-}
-
-function sort_number(a, b) {
-  return a - b;
-}
-
-function rm_quotation(str) {
-  if (str) {
-    var len = str.length;
-    if (len > 2) {
-      if (str[0] == "\"" && str[len - 1] == "\"") {
-        return str.substr(1, len-2);
-      } else {
-        return str;
-      }
-    }
-  }
-  return str;
-}
-
-function gen_model_from_prototxt() {
-
-  // generate nodeDataArray and linkDataArray by parsing prototxt
-  var key_list = ["name", "batch_size", "layers", "bottom:", "top:", "phase:", "include", "num_output", "inner_product_param", "type:",
-  "raw_data_param", "data_param","bn_param","data_source:", "label_source:", "num:", "height:", "width:", "channel:", "use_memory:", "pool:","\"pool\"", "source:","image_data_param:",
-  "DB_backend:", "rand_skip:", "shuffle:", "new_height:", "new_width:", "scale:", "mean_file:", "crop_size:", "mirror:", "pooling_param", "pad:", "pad_h:", "pad_w:",
-  "kernel_size:", "kernel_h:", "kernel_w:", "stride:", "stride_h:", "stride_w:", "bias_term:", "convolution_param", "relu_param", "negative_slope:",
-  "dropout_param", "dropout_ratio:"];
-  var filler_list = ["weight_filler", "bias_filler", "scale_filler", "shift_filler", "data_filler"];
-  var prototxt = document.getElementById("prototxt").value;
-
-  // remove comment in prototxt
-  var prototxt_tmp = "";
-  var prototxt_line = prototxt.split('\n');
-  for (var i = 0; i < prototxt_line.length; ++i) {
-    if (trim(prototxt_line[i])[0] == "#") {
-      continue;
-    }
-    prototxt_tmp += prototxt_line[i];
-  }
-  prototxt = prototxt_tmp;
-
-  prototxt += "layers";
-  var tmp = find_all(prototxt, "layers");
-  var protos = split_text(prototxt, tmp);
-  console.log(protos);
-  var layers = {};
-  for (var i = 0; i < protos.length; i++) {
-    var field_index = [];
-    var layer_obj = {};
-
-    //console.log(protos[i]);
-
-    // parsing fillers
-    var _len = protos[i].length;
-    for (var j = 0; j < filler_list.length; ++j) {
-      var tmp_start = find_all(protos[i], filler_list[j]);
-      if (tmp_start.length == 1) {
-        var tmp_end = protos[i].indexOf("}", tmp_start[0]);
-        if (tmp_end >= 0) {
-          var tmp_field_index = [];
-          var tmp_protos_str = protos[i].substr(tmp_start[0], tmp_end - tmp_start[0]) + _filler_info[0];
-          protos[i] = protos[i].substr(0, tmp_start[0]) + protos[i].substr(tmp_end+1, _len - tmp_end);
-          //console.log(tmp_protos_str);
-          var tmp = find_all(tmp_protos_str, "type");
-          for (var k = 0; k < tmp.length; ++k) {
-            tmp_field_index.push(tmp[k]);
-          }
-          // check other param
-          for (var m = 0; m < _filler_info.length; ++m) {
-            var tmp = find_all(tmp_protos_str, _filler_info[m]);
-            for (var k = 0; k < tmp.length; ++k) {
-              tmp_field_index.push(tmp[k]);
-            }
-          }
-          tmp_field_index.sort(sort_number);
-          var tmp_fields = split_text(tmp_protos_str, tmp_field_index);
-          console.log(tmp_fields);
-          for (var k = 0; k < tmp_fields.length; ++k) {
-            tmp_fields[k] = trim(tmp_fields[k]);
-            var pos = find_all(tmp_fields[k], ":");
-            if (pos.length == 0) {
-              continue;
-            }
-            if (pos.length != 1) {
-              console.log("Error: "+filler_list[j]);
-              //alert("Error: "+filler_list[j]);
-            }
-            pos = pos[0];
-            var key = trim(tmp_fields[k].substr(0, pos));
-            var value = trim(tmp_fields[k].substr(pos+1, tmp_fields[k].length-pos-1));
-            if (!layer_obj[filler_list[j]]) {
-              layer_obj[filler_list[j]] = "default";
-            }
-            layer_obj[filler_list[j]+"_"+key] = value;//rm_quotation(value);
-          }
-        }
-      } else if(tmp_start.length > 1) {
-        console.log("More than one "+ filler_list[j] +" in the same layer!");
-        //alert("More than one "+ filler_list[j] +" in the same layer!");
-      }
-    }
-
-    console.log(layer_obj);
-    //console.log(protos[i]);
-
-    // after removing 'fillers'
-    protos[i] += "layers";
-    for (var j = 0; j < key_list.length; j++) {
-      var tmp = find_all(protos[i], key_list[j]);
-      for (var k = 0; k < tmp.length; k++) {
-        field_index.push(tmp[k]);
-      }
-    }
-    field_index.sort(sort_number);
-    fields = split_text(protos[i], field_index);
-    console.log(fields);
-    var top_value = [];
-    var bottom_value = [];
-    for (var j = 0; j < fields.length; j++) {
-      fields[j] = trim(fields[j]);
-      var pos = find_all(fields[j], ":");
-      if (pos.length == 0) {
-        continue;
-      }
-      if (pos.length != 1) {
-        //alert("Error:" + fields[j]);
-        console.log("Error:" + fields[j]);
-      }
-      pos = pos[0];
-      var key = trim(fields[j].substr(0, pos));
-      var value = trim(fields[j].substr(pos+1, fields[j].length-pos-1));
-      if (value.length == 0) {
-        continue;
-      }
-      if (key == "top") {
-        top_value.push(value);
-      }
-      else if (key == "bottom") {
-        bottom_value.push(value);
-      }
-      else {
-        layer_obj[key] = value;
-      }
-    }
-    layer_obj["name"] = rm_quotation(layer_obj["name"]);
-    layer_obj["top"] = top_value;
-    layer_obj["bottom"] = bottom_value;
-    if (layer_obj["phase"]) {
-      layers[layer_obj["name"]+layer_obj["phase"]+"***"] = layer_obj;
-    } else {
-      layers[layer_obj["name"]+"***"] = layer_obj;
-    }    
-  }
-  // generate linkDataArray
-  //console.log(layers);
-  var nodeDataArray = [];
-  var linkDataArray = [];
-  var blobDict = {};
-  for (var key in layers) {
-    var value = layers[key];
-    var _tmp_obj = {};
-    for (var _layer_key in value) {
-      if (_layer_key == "top" || _layer_key == "bottom") {
-        for (var i = 0; i < value[_layer_key].length; ++i) {
-          value[_layer_key][i] = rm_quotation(value[_layer_key][i]);
-          //console.log(value[_layer_key]);
-          blobDict[value[_layer_key][i]] = "BLOB";
-        }
-        continue;
-      }
-      if (_layer_key == "type") {
-        _tmp_obj["category"] = value[_layer_key];
-        continue;
-      }
-      if (_layer_key == "name") {
-        if (value["phase"]) {
-          _tmp_obj["key"] = value[_layer_key] + value["phase"] + "***";
-        } else {
-          _tmp_obj["key"] = value[_layer_key] + "***";
-        }
-      }
-      _tmp_obj[_layer_key] = rm_quotation(value[_layer_key]);
-    }
-    nodeDataArray.push(_tmp_obj);
-    for (var i = 0; i < value["top"].length; i++) {
-      var to = value["top"][i];
-      linkDataArray.push({"from":key, "to":to, "fromPort":"T", "toPort":"B"});
-    }
-    for (var i = 0; i < value["bottom"].length; i++) {
-      var from = value["bottom"][i];
-      linkDataArray.push({"from":from, "to":key, "fromPort":"T", "toPort":"B"});
-    }
-  }
-  for (var _blob in blobDict) {
-    var _tmp_obj = {};
-    _tmp_obj["key"] = _blob;
-    _tmp_obj["name"] = _blob;
-    _tmp_obj["category"] = "BLOB";
-    nodeDataArray.push(_tmp_obj);
-  }
-  console.log(nodeDataArray);
-
-  var _struct_json = {};
-  _struct_json["class"] = "go.GraphLinksModel";
-  _struct_json["linkFromPortIdProperty"] = "fromPort";
-  _struct_json["linkToPortIdProperty"] = "toPort";
-  _struct_json["nodeDataArray"] = nodeDataArray;
-  _struct_json["linkDataArray"] = linkDataArray;
-
-  var _model = go.Model.fromJson(_struct_json);
-
-  document.getElementById("mySavedModel").value = gen_loc_from_layers(_model["nodeDataArray"], _model["linkDataArray"], _model);
-
-  load();
-}
-
-*/
 
 String.prototype.trim = function(patterns) {
   var result = "";
@@ -1674,294 +733,9 @@ function remove_quotation(str) {
   }
   return str;
 }
-
-function format(str) {
-  // split text by enter
-  var lines = str.split('\n');
-  var filtered_lines = [];
-  // move the comment which is at the end of a line to the top of that line
-  for (var i = 0; i < lines.length; i++) {
-    var position = lines[i].indexOf('#');
-    if (position != 0 && position != -1) {
-      filtered_lines.push(lines[i].substr(position, lines[i].length - position));
-      lines[i] = lines[i].substr(0, position);
-    }
-    filtered_lines.push(lines[i]);
-  }
-  lines = filtered_lines;
-  filtered_lines = [];
-  // remove the space and the tab
-  for (var i = 0; i < lines.length; i++) {
-    if (lines[i].indexOf('#') == -1) {
-      lines[i] = lines[i].trim([' ', '\t']);
-    }
-  }
-  // move the '{' and '}' to a new line
-  for (var i = 0; i < lines.length; i++) {
-    if (lines[i].indexOf('#') != -1) {
-      filtered_lines.push(lines[i]);
-      continue;
-    } else if (lines[i].indexOf('{') == -1 && lines[i].indexOf('}') == -1) {
-      filtered_lines.push(lines[i]);
-      continue;
-    } else {
-      var start = 0;
-      for (var end = 0; end < lines[i].length; end++) {
-        if (lines[i][end] == '{' || lines[i][end] == '}') {
-          filtered_lines.push(lines[i].substr(start, end - start));
-          filtered_lines.push(lines[i].substr(end, 1));
-          start = end + 1;
-        }
-      }
-      if (start < lines[i].length) {
-        filtered_lines.push(lines[i].substr(start, lines[i].length - start));
-      }
-    }
-  }
-  lines = filtered_lines;
-  filtered_lines = [];
-  // remove the redundant line
-  for (var i = 0; i < lines.length; i++) {
-    if (lines[i].length != 0) {
-      filtered_lines.push(lines[i]);
-    }
-  }
-  return filtered_lines;
-}
-
-// generate the block tree by recursion
-function append_block_tree(childs, line_number, prototxt) {
-  if (prototxt[line_number] == "{") {
-    alert("error, unexpected {");
-    return prototxt.length;
-  }
-  if (prototxt[line_number] == "}") {
-    alert("error, {} is not allowed.");
-    return prototxt.length;
-  }
-  var i = line_number;
-  for (; i < prototxt.length - 1; i++) {
-    if (prototxt[i + 1] != "{") {
-      var node = {
-        "start" : i,
-        "end" : i + 1,
-        "childs" : []
-      };
-      childs.push(node);
-    } else {
-      var node = {
-        "start" : i, 
-        "end" : null, 
-        "childs" : []
-      };
-      node["end"] = append_block_tree(node["childs"], i + 2, prototxt);
-      childs.push(node);
-      i = node["end"] - 1;
-    }
-    if (prototxt[i + 1] == "}") {
-      return i + 2;
-    }
-  }
-  return i;
-}
-
-// generate the tree which contains the block position
-function get_block_tree(prototxt) {
-  var tree = {"start" : 0,
-              "end" : null,
-              "childs" : []
-  };
-  var curr_line_number = 0;
-  tree["end"] = append_block_tree(tree["childs"], curr_line_number, prototxt);
-  // if the last line is not "}"
-  if (tree["end"] != prototxt.length) {
-    var node = {
-      "start" : prototxt.length - 1,
-      "end" : prototxt.length,
-      "childs" : []
-    };
-    tree["childs"].push(node);
-    tree["end"] = prototxt.length;
-  }
-  return tree;
-}
-
-// generate the proto tree by recursion
-function append_proto_tree(proto_tree_value, block_tree_childs, father, prototxt) {
-  for (var i = 0; i < block_tree_childs.length; i++) {
-    var start = block_tree_childs[i]["start"];
-    if (block_tree_childs[i]["childs"].length == 0) {
-      if (prototxt[start][0] == '#') {
-        var node = {
-          "key" : "comment",
-          "value" : prototxt[start],
-          "father" : father
-        };
-        proto_tree_value.push(node);
-      } else {
-        var elements = prototxt[start].split(':');
-        if (elements.length != 2) {
-          alert("error in line: " + prototxt[start]);
-          return;
-        }
-        // format value
-        var value = elements[1];
-        if (isNaN(value) == false) {
-          value = Number(value);
-        } else if (value == "true") {
-          value = true;
-        } else if (value == "false") {
-          value = false;
-        } else {
-          value = remove_quotation(value);
-        }
-        var node = {
-          "key" : elements[0].toLowerCase(),
-          "value" : value,
-          "father" : father
-        };
-        proto_tree_value.push(node);
-      }
-    } else {
-      var node = {
-        "key" : prototxt[start].toLowerCase(),
-        "value" : [],
-        "father" : father
-      };
-      append_proto_tree(node["value"], block_tree_childs[i]["childs"], node, prototxt);
-      proto_tree_value.push(node);
-    }
-  }
-}
-
-// generate the proto tree which contains the proto information
-function get_proto_tree(block_tree, prototxt) {
-  var tree = {
-    "key" : "tree",
-    "value" : [],
-    "father" : null
-  };
-  append_proto_tree(tree["value"], block_tree["childs"], tree, prototxt);
-  return tree;
-}
-
-// storage the basic information of the layers
-function get_layers(proto_tree) {
-  var layers = {};
-  for (var i = 0; i < proto_tree["value"].length; i++) {
-    if (proto_tree["value"][i]["key"] == "layer") {
-      var layer_params = proto_tree["value"][i]["value"];
-      var layer_key = null;
-      var layer_value = {
-        "obj_index" : i,
-        "name" : null,
-        "type" : null,
-        "top" : [],
-        "bottom" : []
-      };
-      // get top and bottom blobs
-      for (var j = 0; j < layer_params.length; j++) {
-        if (layer_params[j]["key"] == "top") {
-          layer_value["top"].push(layer_params[j]["value"]);
-        }
-        if (layer_params[j]["key"] == "bottom") {
-          layer_value["bottom"].push(layer_params[j]["value"]);
-        }
-      }
-      // get layer name and type
-      for (var j = 0; j < layer_params.length; j++) {
-        if (layer_params[j]["key"] == "name") {
-          layer_value["name"] = layer_params[j]["value"];
-        }
-        if (layer_params[j]["key"] == "type") {
-          layer_value["type"] = layer_params[j]["value"].toUpperCase();
-        }
-      }
-      if (layer_value["name"] == null) {
-        alert("error, all layers must have a name.");
-      }
-      if (layer_value["type"] == null) {
-        alert("error, all layers must have a type.");
-      }
-      // consider train and test phase
-      layer_key = layer_value["name"];
-      for (var j = 0; j < layer_params.length; j++) {
-        if (layer_params[j]["key"] == "include") {
-          var include_params = layer_params[j]["value"];
-          for (var k = 0; k < include_params.length; k++) {
-            if (include_params[k]["key"] == "phase") {
-              layer_key += ("_" + include_params[k]["value"].toLowerCase());
-            }
-          }
-        }
-      }
-      // check whether the layer name is existed
-      if (layers[layer_key] != undefined) {
-        alert("error, more than one layers called " + layers[layer_key]["name"] + ".");
-      } else {
-        layers[layer_key] = layer_value;
-      }
-    }
-  }
-  return layers;
-}
-
-function get_node_data_array(layers) {
-  var node_data_array = [];
-  var blobs = {};
-  for (var layer_key in layers) {
-    node_data_array.push({
-      "key" : layer_key + "_layer",
-      "name" : layers[layer_key]["name"],
-      "category" : layers[layer_key]["type"]
-    });
-    for (var i = 0; i < layers[layer_key]["top"].length; i++) {
-      var blob_name = layers[layer_key]["top"][i];
-      blobs[blob_name + "_blob"] = {
-        "key" : blob_name + "_blob",
-        "name" : blob_name,
-        "category" : "BLOB"
-      };
-    }
-    for (var i = 0; i < layers[layer_key]["bottom"].length; i++) {
-      var blob_name = layers[layer_key]["bottom"][i];
-      blobs[blob_name + "_blob"] = {
-        "key" : blob_name + "_blob",
-        "name" : blob_name,
-        "category" : "BLOB"
-      };
-    }
-  }
-  for (var blob_key in blobs) {
-    node_data_array.push(blobs[blob_key]);
-  }
-  return node_data_array;
-}
-
-function get_link_data_array(layers) {
-  var link_data_array = [];
-  for (var layer_key in layers) {
-    var bottom_array = layers[layer_key]["bottom"];
-    var top_array = layers[layer_key]["top"];
-    for (var i = 0; i < bottom_array.length; i++) {
-      link_data_array.push({
-        "from" : bottom_array[i] + "_blob",
-        "to" : layer_key + "_layer",
-        "fromPort" : "T",
-        "toPort" : "B"
-      });
-    }
-    for (var i = 0; i < top_array.length; i++) {
-      link_data_array.push({
-        "from" : layer_key + "_layer",
-        "to" : top_array[i] + "_blob",
-        "fromPort" : "T",
-        "toPort" : "B"
-      });
-    }
-  }
-  return link_data_array;
-}
+</script>
+<script src="assets/js/parser_new.js"></script>
+<script>
 
 function gen_model_from_prototxt() {
   var prototxt = format(document.getElementById("prototxt").value);
@@ -2018,7 +792,7 @@ function gen_model_from_prototxt() {
     <span style="display: inline-block; vertical-align: top; padding: 5px; width:22%">
         <table>
           <tr>
-            <td><button onclick="gen_simplified_struct()" style="display:block;">Simplify</button></td> 
+            <td><button onclick="gen_simplified_struct()" style="display:block;">Simplify</button></td>
             <td><button id="SaveButton" onclick="save()" style="display:block;">Save</button></td>
             <td><button onclick="gen_model_from_prototxt()" style="display:block;">Load</button></td>
           </tr>
@@ -2038,14 +812,14 @@ function gen_model_from_prototxt() {
         </div>
         <div style="margin-bottom: 10px;">
           <!--(measured by floating-point calculation)-->
-          Calculation magnitude: <b id="calculation">1</b> 
+          Calculation magnitude: <b id="calculation">1</b>
         </div>
         <div style="margin-bottom: 10px;">
           <div id="propertiesPanel" style="display: none; background-color: aliceblue; border: solid 1px black; overflow-x: auto;padding:10px;">
             <b>Layer Parameter</b><br />
             <table id="propertiesTable">
             <tr>
-              <td>name:</td> 
+              <td>name:</td>
               <td><input type="text" id="name" value="" onchange="updateData(this.value, 'name')" /></td>
             </tr>
             <tr>
@@ -2062,12 +836,12 @@ function gen_model_from_prototxt() {
     </span>
 
   </div>
-   
+
   <textarea id="mySavedModel" style="width:100%;height:300px;display:block;">
 { "class": "go.GraphLinksModel",
   "linkFromPortIdProperty": "fromPort",
   "linkToPortIdProperty": "toPort",
-  "nodeDataArray": [ 
+  "nodeDataArray": [
 {"key":"ipTRAIN***", "name":"ip", "category":"ok", "num_output":"42", "phase":"TRAIN", "loc":"-45 -315", "weight_filler":"default", "bias_filler":"default"},
 {"key":"loss***", "name":"loss", "category":"SOFTMAX_LOSS", "loc":"-45 -475"},
 {"key":"conv4***", "name":"conv4", "category":"CONVOLUTION", "num_output":"128", "kernel_size":"4", "stride":"1", "pad":"0", "loc":"-45 165", "weight_filler":"default", "bias_filler":"default"},
@@ -2082,7 +856,7 @@ function gen_model_from_prototxt() {
 {"key":"data", "name":"data", "category":"BLOB", "loc":"-95 245"},
 {"key":"relu4", "name":"relu4", "category":"BLOB", "loc":"-45 -75"}
  ],
-  "linkDataArray": [ 
+  "linkDataArray": [
 {"from":"ipTRAIN***", "to":"ip", "fromPort":"T", "toPort":"B", "points":[  ]},
 {"from":"pool4", "to":"ipTRAIN***", "fromPort":"T", "toPort":"B", "points":[  ]},
 {"from":"ip", "to":"loss***", "fromPort":"T", "toPort":"B", "points":[  ]},
@@ -2115,7 +889,7 @@ function gen_model_from_prototxt() {
     <li>Generate prototxt by canvas object.</li>
     <li>Click on a layer and show its parameter.(e.g. click 'DATA' and show 'source, batch_size, ...')</li>
     <li>Upload a prototxt file and transform it to an editable image.</li>
-    <p>TODO:</p> 
+    <p>TODO:</p>
     </div>
   </div>
 </div>
