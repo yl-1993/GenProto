@@ -294,6 +294,9 @@ function init() {
   myDiagram.toolManager.relinkingTool.temporaryLink.routing = go.Link.Orthogonal;
 
   load(); // load an initial diagram from some JSON text
+  var _model = document.getElementById("mySavedModel").value;
+  _model = prettifyJSONString(_model);
+  document.getElementById("mySavedModel").value = _model;
 
   // initialize the Palette that is on the left side of the page
   BlobPalette =

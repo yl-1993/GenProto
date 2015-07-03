@@ -359,3 +359,28 @@ function get_link_data_array(layers) {
   }
   return link_data_array;
 }
+
+function gen_model_from_prototxt() {
+  'use strict';
+  var prototxt = format(document.getElementById("prototxt").value);
+  var block_tree = get_block_tree(prototxt);
+  var proto_tree = get_proto_tree(block_tree, prototxt);
+  var layers = get_layers(proto_tree);
+  var nodeDataArray = get_node_data_array(layers);
+  var linkDataArray = get_link_data_array(layers);
+  console.log(proto_tree);
+  console.log(layers);
+  console.log(nodeDataArray);
+
+  var _struct_json = {};
+  _struct_json["class"] = "go.GraphLinksModel";
+  _struct_json["linkFromPortIdProperty"] = "fromPort";
+  _struct_json["linkToPortIdProperty"] = "toPort";
+  _struct_json["nodeDataArray"] = nodeDataArray;
+  _struct_json["linkDataArray"] = linkDataArray;
+
+  var _model = go.Model.fromJson(_struct_json);
+  document.getElementById("mySavedModel").value = gen_loc_from_layers(_model[
+    "nodeDataArray"], _model["linkDataArray"], _model);
+  load();
+}

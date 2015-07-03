@@ -6,6 +6,7 @@
 <script src="go.js"></script>
 <link href="./assets/css/genproto.css" rel="stylesheet" type="text/css" />
 <script src="genproto.js"></script>
+<script src="assets/js/util.js"></script>
 <script id="code">
 
   var lastStroked = null;  // this remembers the last highlit Shape
@@ -359,11 +360,17 @@
 ////////////////////////new added finished///////////////////////////
 </script>
 <script src="assets/js/prototxt_formatter.js"></script>
+<!-- <script src="assets/js/prototxt_formatter_test.js"></script> -->
+<script src="assets/js/parser_new.js"></script>
+<!-- <script src="assets/js/parser_test.js"></script> -->
+<script src="assets/js/layout.js"></script>
+<script src="assets/js/stat.js"></script>
 <script>
   //diagram -> saved_model
   function save() {
 
     _model = myDiagram.model.toJson();
+    _model = prettifyJSONString(_model);
     document.getElementById("mySavedModel").value = _model;
     document.getElementById("prototxt").value = save_prototxt(eval('['+_model+']'));
     gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
@@ -479,20 +486,7 @@ function uploadAndSubmit() {
   reader.readAsText(file);
 }
 </script>
-<script>
 
-function unique(arr) {
-  var result = [], hash = {};
-  for (var i = 0, elem; (elem = arr[i]) != null; i++) {
-      if (!hash[elem]) {
-          result.push(elem);
-          hash[elem] = true;
-      }
-  }
-  return result;
-}
-</script>
-<script src="assets/js/stat.js"></script>
 <script>
 function gen_simplified_struct() {
   save();
@@ -537,31 +531,10 @@ function remove_quotation(str) {
   return str;
 }
 </script>
-<script src="assets/js/parser_new.js"></script>
+
 <script>
 
-function gen_model_from_prototxt() {
-  var prototxt = format(document.getElementById("prototxt").value);
-  var block_tree = get_block_tree(prototxt);
-  var proto_tree = get_proto_tree(block_tree, prototxt);
-  var layers = get_layers(proto_tree);
-  var nodeDataArray = get_node_data_array(layers);
-  var linkDataArray = get_link_data_array(layers);
-  console.log(proto_tree);
-  console.log(layers);
-  console.log(nodeDataArray);
 
-  var _struct_json = {};
-  _struct_json["class"] = "go.GraphLinksModel";
-  _struct_json["linkFromPortIdProperty"] = "fromPort";
-  _struct_json["linkToPortIdProperty"] = "toPort";
-  _struct_json["nodeDataArray"] = nodeDataArray;
-  _struct_json["linkDataArray"] = linkDataArray;
-
-  var _model = go.Model.fromJson(_struct_json);
-  document.getElementById("mySavedModel").value = gen_loc_from_layers(_model["nodeDataArray"], _model["linkDataArray"], _model);
-  load()
-}
 
 
 </script>
@@ -635,49 +608,68 @@ function gen_model_from_prototxt() {
           </div>
         </div>
         <div style="margin-top:10px">
-          <textarea id="prototxt" style="width:100%;height:300px;display:block;">
-          </textarea>
+
         </div>
     </span>
 
   </div>
+  <style>
+  .text-bottom .panel{
+    width: 600px;
+    float: left;
+    padding: 20px;
+  }
+  .text-bottom .panel textarea{
+    width: 100%;
+    height: 500px;
+  }
+  </style>
+  <div class="text-bottom">
+    <div class="panel">
+      <textarea id="mySavedModel">
+    { "class": "go.GraphLinksModel",
+      "linkFromPortIdProperty": "fromPort",
+      "linkToPortIdProperty": "toPort",
+      "nodeDataArray": [
+    {"key":"ipTRAIN***", "name":"ip", "category":"ok", "num_output":"42", "phase":"TRAIN", "loc":"-45 -315", "weight_filler":"default", "bias_filler":"default"},
+    {"key":"loss***", "name":"loss", "category":"SOFTMAX_LOSS", "loc":"-45 -475"},
+    {"key":"conv4***", "name":"conv4", "category":"CONVOLUTION", "num_output":"128", "kernel_size":"4", "stride":"1", "pad":"0", "loc":"-45 165", "weight_filler":"default", "bias_filler":"default"},
+    {"key":"pool4***", "name":"pool4", "category":"POOLING", "pooling_parampool":"MAX", "kernel_size":"2", "stride":"2", "pad":"0", "loc":"-45 -155"},
+    {"key":"relu4***", "name":"relu4", "category":"RELU", "loc":"-45 5"},
+    {"key":"dataTRAIN***", "name":"data", "category":"RAW_DATA", "data_source":"/data1/gaoy/xfsj/train002.bin", "label_source":"/data1/gaoy/xfsj/imagelist_train.label.meta", "batch_size":"64", "num":"509332", "height":"55", "width":"47", "channel":"3", "use_memory":"false", "phase":"TRAIN", "loc":"-45 325"},
+    {"key":"dataTEST***", "name":"data", "category":"RAW_DATA", "data_source":"/data1/gaoy/xfsj/test002.bin", "label_source":"/data1/gaoy/xfsj/imagelist_test.label.meta", "batch_size":"8", "num":"8000", "height":"55", "width":"47", "channel":"3", "use_memory":"false", "phase":"TEST", "loc":"55 325"},
+    {"key":"ip", "name":"ip", "category":"BLOB", "loc":"-45 -395"},
+    {"key":"pool4", "name":"pool4", "category":"BLOB", "loc":"-45 -235"},
+    {"key":"label", "name":"label", "category":"BLOB", "loc":"5 245"},
+    {"key":"conv4", "name":"conv4", "category":"BLOB", "loc":"-45 85"},
+    {"key":"data", "name":"data", "category":"BLOB", "loc":"-95 245"},
+    {"key":"relu4", "name":"relu4", "category":"BLOB", "loc":"-45 -75"}
+     ],
+      "linkDataArray": [
+    {"from":"ipTRAIN***", "to":"ip", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"pool4", "to":"ipTRAIN***", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"ip", "to":"loss***", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"label", "to":"loss***", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"conv4***", "to":"conv4", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"data", "to":"conv4***", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"pool4***", "to":"pool4", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"relu4", "to":"pool4***", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"relu4***", "to":"relu4", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"conv4", "to":"relu4***", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"dataTRAIN***", "to":"data", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"dataTRAIN***", "to":"label", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"dataTEST***", "to":"data", "fromPort":"T", "toPort":"B", "points":[  ]},
+    {"from":"dataTEST***", "to":"label", "fromPort":"T", "toPort":"B", "points":[  ]}
+     ]}
+      </textarea>
+    </div>
+    <div class="panel">
+      <textarea id="prototxt">
+      </textarea>
+    </div>
+  </div>
 
-  <textarea id="mySavedModel" style="width:100%;height:300px;display:block;">
-{ "class": "go.GraphLinksModel",
-  "linkFromPortIdProperty": "fromPort",
-  "linkToPortIdProperty": "toPort",
-  "nodeDataArray": [
-{"key":"ipTRAIN***", "name":"ip", "category":"ok", "num_output":"42", "phase":"TRAIN", "loc":"-45 -315", "weight_filler":"default", "bias_filler":"default"},
-{"key":"loss***", "name":"loss", "category":"SOFTMAX_LOSS", "loc":"-45 -475"},
-{"key":"conv4***", "name":"conv4", "category":"CONVOLUTION", "num_output":"128", "kernel_size":"4", "stride":"1", "pad":"0", "loc":"-45 165", "weight_filler":"default", "bias_filler":"default"},
-{"key":"pool4***", "name":"pool4", "category":"POOLING", "pooling_parampool":"MAX", "kernel_size":"2", "stride":"2", "pad":"0", "loc":"-45 -155"},
-{"key":"relu4***", "name":"relu4", "category":"RELU", "loc":"-45 5"},
-{"key":"dataTRAIN***", "name":"data", "category":"RAW_DATA", "data_source":"/data1/gaoy/xfsj/train002.bin", "label_source":"/data1/gaoy/xfsj/imagelist_train.label.meta", "batch_size":"64", "num":"509332", "height":"55", "width":"47", "channel":"3", "use_memory":"false", "phase":"TRAIN", "loc":"-45 325"},
-{"key":"dataTEST***", "name":"data", "category":"RAW_DATA", "data_source":"/data1/gaoy/xfsj/test002.bin", "label_source":"/data1/gaoy/xfsj/imagelist_test.label.meta", "batch_size":"8", "num":"8000", "height":"55", "width":"47", "channel":"3", "use_memory":"false", "phase":"TEST", "loc":"55 325"},
-{"key":"ip", "name":"ip", "category":"BLOB", "loc":"-45 -395"},
-{"key":"pool4", "name":"pool4", "category":"BLOB", "loc":"-45 -235"},
-{"key":"label", "name":"label", "category":"BLOB", "loc":"5 245"},
-{"key":"conv4", "name":"conv4", "category":"BLOB", "loc":"-45 85"},
-{"key":"data", "name":"data", "category":"BLOB", "loc":"-95 245"},
-{"key":"relu4", "name":"relu4", "category":"BLOB", "loc":"-45 -75"}
- ],
-  "linkDataArray": [
-{"from":"ipTRAIN***", "to":"ip", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"pool4", "to":"ipTRAIN***", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"ip", "to":"loss***", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"label", "to":"loss***", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"conv4***", "to":"conv4", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"data", "to":"conv4***", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"pool4***", "to":"pool4", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"relu4", "to":"pool4***", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"relu4***", "to":"relu4", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"conv4", "to":"relu4***", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"dataTRAIN***", "to":"data", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"dataTRAIN***", "to":"label", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"dataTEST***", "to":"data", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"from":"dataTEST***", "to":"label", "fromPort":"T", "toPort":"B", "points":[  ]}
- ]}
-  </textarea>
+
 
   <button onclick="save_to_image()" style="display:none;">Render as image</button>
   <button onclick="makeSVG()" style="display:none;">Render as SVG</button>
