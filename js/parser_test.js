@@ -36,7 +36,7 @@ var layer2arr = function(str) {
 
 //parse array of layer string to [key, value, next] start from :start
 // when meet same key , will turn the value to array
-var parse = function(arr, start) {
+var parseIter = function(arr, start) {
   'use strict';
   if (!arr[start].match(/\{/)) {
     return "error";
@@ -50,7 +50,7 @@ var parse = function(arr, start) {
       kv = line2kv(arr[i]);
       i += 1;
     } else if (arr[i].match(/^[^\{]*\{/)) {
-      kv = parse(arr, i);
+      kv = parseIter(arr, i);
       i = kv[2];
     }
     if (value[kv[0]]) {
@@ -63,6 +63,17 @@ var parse = function(arr, start) {
     }
   }
   return [key, value, i + 1];
+};
+
+var parseLayer = function(text){
+  'use strict';
+  var arr = layer2arr(text);
+  var parsed = parseIter(arr, 0);
+  if(parsed == "error"){
+    return null;
+  }else{
+    return parsed[1];
+  }
 };
 
 var line2kv = function(line) {
@@ -89,7 +100,7 @@ var layer_split = function(net) {
   var s = [];
   var i = 0;
   for (i = 0; i < arr.length; i += 1) {
-    if (arr[i].match(/layer \{/)) {
+    if (arr[i].match(/layer\s*\{/)) {
       s.push(i);
     }
   }
@@ -114,6 +125,7 @@ var generate_link = function(nodes) {
       for (j = 0; j < nodes[i].top.length; j += 1) {
         if (!blobs[nodes[i].top[j]]) {
           blobs[nodes[i].top[j]] = {
+            "blob_name" : nodes[i].top[j],
             "from": [nodes[i].key],
             "to": []
           };
@@ -124,6 +136,7 @@ var generate_link = function(nodes) {
     } else if (nodes[i].top) {
       if (!blobs[nodes[i].top]) {
         blobs[nodes[i].top] = {
+          "blob_name" : nodes[i].top,
           "from": [nodes[i].key],
           "to": []
         };
@@ -162,6 +175,7 @@ var generate_link = function(nodes) {
     for (i = 0; i < blob.to.length; i += 1) {
       for (j = 0; j < blob.from.length; j += 1) {
         var newLink = {
+          blob_name: blob.blob_name,
           from: blob.from[j],
           to: blob.to[i],
           fromPort: 'T',
@@ -207,12 +221,20 @@ function wrap_model(nodes) {
   }
   return res;
 }
-var removeReluLayer = function(nodes) {
+var removeReluLayer = function(nodes, links) {
   'use strict';
   var res = [];
   var i;
+  var link_hash = {};
+  for (i = 0; i < links.length; i += 1){
+    link_hash[links[i].blob_name] = links[i];
+  }
+  console.log(link_hash);
   for (i = 0; i < nodes.length; i += 1) {
     if (nodes[i].type == 'ReLU' && nodes[i].top == nodes[i].bottom) {
+      if(link_hash[nodes[i].top]){
+        link_hash[nodes[i].top].relu_data = nodes[i].json;
+      }
       continue;
     }
     res.push(nodes[i]);
@@ -233,19 +255,23 @@ function gen_model_from_prototxt() {
   // console.log(nodeDataArray);
   //
   var layers_arr = layer_split(prototxt);
+  // console.log(prototxt);
   // console.log(layers_arr);
   var nodeDataArray = [];
   var linkDataArray = [];
   var jsonArray = [];
   var i;
   for (i = 0; i < layers_arr.length; i += 1) {
-    var layer = parse(layer2arr(layers_arr[i]), 0)[1];
+    var layer = parseIter(layer2arr(layers_arr[i]), 0)[1];
+
     jsonArray.push(layer);
   }
   nodeDataArray = wrap_model(jsonArray);
-  console.log(nodeDataArray);
+
+  // console.log(jsonArray);
+  // console.log(nodeDataArray);
   linkDataArray = generate_link(nodeDataArray);
-  nodeDataArray = removeReluLayer(nodeDataArray);
+  nodeDataArray = removeReluLayer(nodeDataArray, linkDataArray);
   var _struct_json = {};
   _struct_json["class"] = "go.GraphLinksModel";
   _struct_json["linkFromPortIdProperty"] = "fromPort";

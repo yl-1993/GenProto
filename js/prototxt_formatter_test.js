@@ -15,7 +15,7 @@ var json2prototxt_layer = function(obj) {
 
 var json_obj2prototxt = function(obj, indent) {
   'use strict';
-  var res = " {\n";
+  var res = "{\n";
   var key;
   var i, j, k;
   for (key in obj) {
@@ -43,7 +43,7 @@ var json_obj2prototxt = function(obj, indent) {
 var add_quote = function(z) {
   'use strict';
   if (isNaN(parseFloat(z))) {
-    if (z == "TRAIN" || z == "TEST" || z == "LMDB" || z === true || z === false) {
+    if (z == "TRAIN" || z == "TEST" || z == "LMDB" || z == "MAX" || z === true || z === false) {
       return z;
     } else {
       return "\"" + z + "\"";
@@ -59,14 +59,18 @@ function save_prototxt(_model) {
   var prototxt = "name: \"net\"\n";
   var _node_data_array = _model[0]['nodeDataArray'];
   var _link_data_array = _model[0]['linkDataArray'];
-  var _node_data_num = _node_data_array.length;
-  var _link_data_num = _link_data_array.length;
-  var _map = {};
   var jsons = [];
   var i,j,k;
   for(i = 0; i < _node_data_array.length; i += 1){
     var json = _node_data_array[i].json;
     prototxt += json2prototxt_layer(json);
+  }
+
+  //look for relu layer (hidden)
+  for(i = 0; i < _link_data_array.length; i += 1){
+    if(_link_data_array[i].text == "ReLU"){
+      prototxt += json2prototxt_layer(_link_data_array[i].relu_data);
+    }
   }
   return prototxt;
 }

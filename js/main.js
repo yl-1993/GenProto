@@ -289,6 +289,17 @@ function init() {
       "Diamond");
   }
 
+  // Make all ports on a node visible when the mouse is over the node
+  function showPorts(node, show) {
+    'use strict';
+    var diagram = node.diagram;
+    if (!diagram || diagram.isReadOnly || !diagram.allowLink) return;
+    node.ports.each(function(port) {
+        port.stroke = (show ? "white" : null);
+      });
+  }
+
+
   // temporary links used by LinkingTool and RelinkingTool are also orthogonal:
   myDiagram.toolManager.linkingTool.temporaryLink.routing = go.Link.Orthogonal;
   myDiagram.toolManager.relinkingTool.temporaryLink.routing = go.Link.Orthogonal;
