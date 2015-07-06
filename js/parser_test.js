@@ -265,7 +265,7 @@ function hideLoadingDiv() {
   document.getElementById("overlap-show").style.display ='none';
 }
 
-function gen_model_from_prototxt(callback) {
+function gen_model_from_prototxt() {
   'use strict';
 
   showLoadingDiv();
@@ -299,7 +299,6 @@ function gen_model_from_prototxt(callback) {
     "nodeDataArray"], _model["linkDataArray"], _model);
   load();
 
-  // remove loading shadow
-  callback();
+  hideLoadingDiv();
 }
 
