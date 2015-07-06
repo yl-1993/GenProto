@@ -47,7 +47,7 @@
     _model = document.getElementById("mySavedModel").value;
     myDiagram.model = go.Model.fromJson(_model);
     document.getElementById("prototxt").value = save_prototxt(eval('['+_model+']'));
-    gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
+    //gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
     //compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
   }
   // add an SVG rendering of the diagram at the end of this page
@@ -158,20 +158,19 @@ function gen_simplified_struct() {
   load();
 }
 
-
-function remove_quotation(str) {
-  if (str) {
-    var len = str.length;
-    if (len > 2) {
-      if (str[0] == "\"" && str[len - 1] == "\"") {
-        return str.substr(1, len-2);
-      } else {
-        return str;
-      }
-    }
-  }
-  return str;
-}
+// function remove_quotation(str) {
+//   if (str) {
+//     var len = str.length;
+//     if (len > 2) {
+//       if (str[0] == "\"" && str[len - 1] == "\"") {
+//         return str.substr(1, len-2);
+//       } else {
+//         return str;
+//       }
+//     }
+//   }
+//   return str;
+// }
 </script>
 
 <script>
@@ -191,6 +190,22 @@ function remove_quotation(str) {
 <div style="text-align:center;">
 <h1>Caffe Prototxt Generator</h1>
 </div>
+<div id="overlap-bg"></div>
+<div id="overlap-show">
+  <div class="sk-spinner sk-spinner-cube-grid" style="text-align:center">
+    <div class="sk-cube"></div>
+    <div class="sk-cube"></div>
+    <div class="sk-cube"></div>
+    <div class="sk-cube"></div>
+    <div class="sk-cube"></div>
+    <div class="sk-cube"></div>
+    <div class="sk-cube"></div>
+    <div class="sk-cube"></div>
+    <div class="sk-cube"></div>
+    <h4 style="color:white">Loading ...</h4>
+  </div>
+</div>
+
 <div id="sample">
   <div style="width:100%; white-space:nowrap;">
     <span style="display: inline-block; vertical-align: top; padding: 5px; width:15%">
@@ -216,7 +231,7 @@ function remove_quotation(str) {
           <tr>
             <td><button onclick="gen_simplified_struct()" style="display:block;">Simplify</button></td>
             <td><button id="SaveButton" onclick="save()" style="display:block;">Save</button></td>
-            <td><button onclick="gen_model_from_prototxt()" style="display:block;">Load</button></td>
+            <td><button onclick="gen_model_from_prototxt(hideLoadingDiv)" style="display:block;">Load</button></td>
           </tr>
           <tr>
             <td><button onclick="saveTextAsFile()" style="display:block;">Download</button></td>

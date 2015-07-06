@@ -256,21 +256,22 @@ var removeReluLayer = function(nodes, links) {
   return res;
 };
 
-function gen_model_from_prototxt() {
+function showLoadingDiv() {            
+  document.getElementById("overlap-bg").style.display ="block";
+  document.getElementById("overlap-show").style.display ="block";
+}
+function hideLoadingDiv() {
+  document.getElementById("overlap-bg").style.display ='none';
+  document.getElementById("overlap-show").style.display ='none';
+}
+
+function gen_model_from_prototxt(callback) {
   'use strict';
+
+  showLoadingDiv();
+  // parsing the prototxt
   var prototxt = document.getElementById("prototxt").value;
-  // var block_tree = get_block_tree(prototxt);
-  // var proto_tree = get_proto_tree(block_tree, prototxt);
-  // var layers = get_layers(proto_tree);
-  // var nodeDataArray = get_node_data_array(layers);
-  // var linkDataArray = get_link_data_array(layers);
-  // console.log(proto_tree);
-  // console.log(layers);
-  // console.log(nodeDataArray);
-  //
   var layers_arr = layer_split(prototxt);
-  // console.log(prototxt);
-  // console.log(layers_arr);
   var nodeDataArray = [];
   var linkDataArray = [];
   var jsonArray = [];
@@ -297,4 +298,8 @@ function gen_model_from_prototxt() {
   document.getElementById("mySavedModel").value = gen_loc_from_layers(_model[
     "nodeDataArray"], _model["linkDataArray"], _model);
   load();
+
+  // remove loading shadow
+  callback();
 }
+

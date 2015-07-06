@@ -84,8 +84,8 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
     _edge_from[_link_data_array[i]["from"]].push(_link_data_array[i]["to"]);
   }
 
-  console.log(_edge_to);
-  console.log(_edge_from);
+  // console.log(_edge_to);
+  // console.log(_edge_from);
 
   // select bottom and top
   var bottom_list = [];
@@ -190,7 +190,7 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
     }
   }
 
-  // cal the exact position for top blob
+  // cal the exact position for top blob, from left to right
   cur_top = top_list;
   cur_top_num = cur_top.length;
   cur_start_x = start_x - (cur_top_num - 1.0) / 2 * delta_x;
@@ -203,6 +203,33 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
       }
     }
   }
+
+  console.log(_edge_from);
+  console.log(bottom_list);
+  console.log(top_list);
+  for (i = 0; i < _link_data_num; ++i) {
+    for (j = 0; j < bottom_list.length; ++j) {
+      for (k = 0; k < top_list.length; ++k) {
+        if (k > 0 && k < top_list.length - 1){
+          continue;
+        }
+        if (_link_data_array[i]["from"] == bottom_list[j] && 
+           _link_data_array[i]["to"] == top_list[k] &&
+           _edge_from[bottom_list[j]].contains(top_list[k])) {
+          if (k == 0) {
+            _link_data_array[i]["fromPort"] = "L";
+            _link_data_array[i]["toPort"] = "L"; 
+            console.log(_link_data_array[i]);
+          } else if (k == top_list.length - 1) {
+            _link_data_array[i]["fromPort"] = "R";
+            _link_data_array[i]["toPort"] = "R"; 
+          }         
+        }
+      }
+    }
+  }
+
   _model["nodeDataArray"] = _node_data_array;
+  _model["linkDataArray"] = _link_data_array;
   return _model.toJson();
 }
