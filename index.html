@@ -11,16 +11,17 @@
 <script id="code">
   var lastStroked = null;  // this remembers the last highlit Shape
 </script>
-<script src="./js/main.js"></script>
 
 
 <!-- old script -->
+<!-- <script src="./js/main.js"></script> -->
 <!-- <script src="./js/prototxt_formatter.js"></script> -->
 <!-- <script src="./js/parser_new.js"></script> -->
 <!-- <script src="./js/action_listener.js"></script> -->
 <!-- end -->
 
 <!-- new script -->
+<script src="./js/main_test.js"></script> 
 <script src="./js/prototxt_formatter_test.js"></script>
 <script src="./js/parser_test.js"></script>
 <script src="./js/action_listener_test.js"></script>
@@ -47,7 +48,7 @@
     myDiagram.model = go.Model.fromJson(_model);
     document.getElementById("prototxt").value = save_prototxt(eval('['+_model+']'));
     gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
-    compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
+    //compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
   }
   // add an SVG rendering of the diagram at the end of this page
   function makeSVG() {
@@ -154,7 +155,6 @@ function gen_simplified_struct() {
   var _model = go.Model.fromJson(_struct_json);
   //console.log(_model["nodeDataArray"]);
   document.getElementById("mySavedModel").value = gen_loc_from_layers(_model["nodeDataArray"], _model["linkDataArray"], _model);
-
   load();
 }
 
@@ -194,8 +194,10 @@ function remove_quotation(str) {
 <div id="sample">
   <div style="width:100%; white-space:nowrap;">
     <span style="display: inline-block; vertical-align: top; padding: 5px; width:15%">
+    <!---
       <h2>Blob</h2>
       <div id="BLOB" style="border: solid 1px gray; height: 60px"></div>
+      -->
       <h2>Data Layers</h2>
       <div id="myPalette" style="border: solid 1px gray; height: 250px"></div>
       <h2>Common Layers</h2>
@@ -276,30 +278,30 @@ function remove_quotation(str) {
   <div class="text-bottom">
     <div class="panel">
       <textarea id="mySavedModel">
-        { "class": "go.GraphLinksModel",
+{ "class": "go.GraphLinksModel",
   "linkFromPortIdProperty": "fromPort",
   "linkToPortIdProperty": "toPort",
-  "nodeDataArray": [
-{"json":{"name":"data", "type":"Data", "top":[ "data","label" ], "include":{"phase":"TRAIN"}, "transform_param":{"mirror":true, "crop_size":224, "mean_value":[ 104,117,123 ]}, "data_param":{"source":"examples/imagenet/ilsvrc12_train_lmdb", "batch_size":32, "backend":"LMDB"}}, "name":"data", "top":[ "data","label" ], "type":"Data", "key":"data_TRAIN", "loc":"-45 325"},
-{"json":{"name":"data", "type":"Data", "top":[ "data","label" ], "include":{"phase":"TEST"}, "transform_param":{"mirror":false, "crop_size":224, "mean_value":[ 104,117,123 ]}, "data_param":{"source":"examples/imagenet/ilsvrc12_val_lmdb", "batch_size":50, "backend":"LMDB"}}, "name":"data", "top":[ "data","label" ], "type":"Data", "key":"data_TEST", "loc":"155 325"},
-{"json":{"name":"conv1/7x7_s2", "type":"Convolution", "bottom":"data", "top":"conv1/7x7_s2", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":64, "pad":3, "kernel_size":7, "stride":2, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"conv1/7x7_s2", "top":"conv1/7x7_s2", "bottom":"data", "type":"Convolution", "key":"conv1/7x7_s2", "loc":"-45 225"},
-{"json":{"name":"pool1/3x3_s2", "type":"Pooling", "bottom":"conv1/7x7_s2", "top":"pool1/3x3_s2", "pooling_param":{"pool":"MAX", "kernel_size":3, "stride":2}}, "name":"pool1/3x3_s2", "top":"pool1/3x3_s2", "bottom":"conv1/7x7_s2", "type":"Pooling", "key":"pool1/3x3_s2", "loc":"-45 125"},
-{"json":{"name":"pool1/norm1", "type":"LRN", "bottom":"pool1/3x3_s2", "top":"pool1/norm1", "lrn_param":{"local_size":5, "alpha":0.0001, "beta":0.75}}, "name":"pool1/norm1", "top":"pool1/norm1", "bottom":"pool1/3x3_s2", "type":"LRN", "key":"pool1/norm1", "loc":"-45 25"},
-{"json":{"name":"conv2/3x3_reduce", "type":"Convolution", "bottom":"pool1/norm1", "top":"conv2/3x3_reduce", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":64, "kernel_size":1, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"conv2/3x3_reduce", "top":"conv2/3x3_reduce", "bottom":"pool1/norm1", "type":"Convolution", "key":"conv2/3x3_reduce", "loc":"-45 -75"},
-{"json":{"name":"conv2/3x3", "type":"Convolution", "bottom":"conv2/3x3_reduce", "top":"conv2/3x3", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":192, "pad":1, "kernel_size":3, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"conv2/3x3", "top":"conv2/3x3", "bottom":"conv2/3x3_reduce", "type":"Convolution", "key":"conv2/3x3", "loc":"-45 -175"},
-{"json":{"name":"conv2/norm2", "type":"LRN", "bottom":"conv2/3x3", "top":"conv2/norm2", "lrn_param":{"local_size":5, "alpha":0.0001, "beta":0.75}}, "name":"conv2/norm2", "top":"conv2/norm2", "bottom":"conv2/3x3", "type":"LRN", "key":"conv2/norm2", "loc":"-45 -275"},
-{"json":{"name":"pool2/3x3_s2", "type":"Pooling", "bottom":"conv2/norm2", "top":"pool2/3x3_s2", "pooling_param":{"pool":"MAX", "kernel_size":3, "stride":2}}, "name":"pool2/3x3_s2", "top":"pool2/3x3_s2", "bottom":"conv2/norm2", "type":"Pooling", "key":"pool2/3x3_s2", "loc":"-45 -375"},
-{"json":{"name":"inception_3a/1x1", "type":"Convolution", "bottom":"pool2/3x3_s2", "top":"inception_3a/1x1", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":64, "kernel_size":1, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"inception_3a/1x1", "top":"inception_3a/1x1", "bottom":"pool2/3x3_s2", "type":"Convolution", "key":"inception_3a/1x1", "loc":"-145 -575"},
-{"json":{"name":"inception_3a/3x3_reduce", "type":"Convolution", "bottom":"pool2/3x3_s2", "top":"inception_3a/3x3_reduce", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":96, "kernel_size":1, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"inception_3a/3x3_reduce", "top":"inception_3a/3x3_reduce", "bottom":"pool2/3x3_s2", "type":"Convolution", "key":"inception_3a/3x3_reduce", "loc":"55 -575"}
+  "nodeDataArray": [ 
+{"json":{"name":"data", "type":"Data", "top":[ "data","label" ], "include":{"phase":"TRAIN"}, "transform_param":{"mirror":true, "crop_size":224, "mean_value":[ 104,117,123 ]}, "data_param":{"source":"examples/imagenet/ilsvrc12_train_lmdb", "batch_size":32, "backend":"LMDB"}}, "name":"data", "top":[ "data","label" ], "type":"Data", "category":"DATA", "key":"data_TRAIN", "loc":"-45 325"},
+{"json":{"name":"data", "type":"Data", "top":[ "data","label" ], "include":{"phase":"TEST"}, "transform_param":{"mirror":false, "crop_size":224, "mean_value":[ 104,117,123 ]}, "data_param":{"source":"examples/imagenet/ilsvrc12_val_lmdb", "batch_size":50, "backend":"LMDB"}}, "name":"data", "top":[ "data","label" ], "type":"Data", "category":"DATA", "key":"data_TEST", "loc":"155 325"},
+{"json":{"name":"conv1/7x7_s2", "type":"Convolution", "bottom":"data", "top":"conv1/7x7_s2", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":64, "pad":3, "kernel_size":7, "stride":2, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"conv1/7x7_s2", "top":"conv1/7x7_s2", "bottom":"data", "type":"Convolution", "category":"CONVOLUTION", "key":"conv1/7x7_s2", "loc":"-45 225"},
+{"json":{"name":"pool1/3x3_s2", "type":"Pooling", "bottom":"conv1/7x7_s2", "top":"pool1/3x3_s2", "pooling_param":{"pool":"MAX", "kernel_size":3, "stride":2}}, "name":"pool1/3x3_s2", "top":"pool1/3x3_s2", "bottom":"conv1/7x7_s2", "type":"Pooling", "category":"POOLING", "key":"pool1/3x3_s2", "loc":"-45 125"},
+{"json":{"name":"pool1/norm1", "type":"LRN", "bottom":"pool1/3x3_s2", "top":"pool1/norm1", "lrn_param":{"local_size":5, "alpha":0.0001, "beta":0.75}}, "name":"pool1/norm1", "top":"pool1/norm1", "bottom":"pool1/3x3_s2", "type":"LRN", "category":"OTHERS", "key":"pool1/norm1", "loc":"-45 25"},
+{"json":{"name":"conv2/3x3_reduce", "type":"Convolution", "bottom":"pool1/norm1", "top":"conv2/3x3_reduce", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":64, "kernel_size":1, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"conv2/3x3_reduce", "top":"conv2/3x3_reduce", "bottom":"pool1/norm1", "type":"Convolution", "category":"CONVOLUTION", "key":"conv2/3x3_reduce", "loc":"-45 -75"},
+{"json":{"name":"conv2/3x3", "type":"Convolution", "bottom":"conv2/3x3_reduce", "top":"conv2/3x3", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":192, "pad":1, "kernel_size":3, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"conv2/3x3", "top":"conv2/3x3", "bottom":"conv2/3x3_reduce", "type":"Convolution", "category":"CONVOLUTION", "key":"conv2/3x3", "loc":"-45 -175"},
+{"json":{"name":"conv2/norm2", "type":"LRN", "bottom":"conv2/3x3", "top":"conv2/norm2", "lrn_param":{"local_size":5, "alpha":0.0001, "beta":0.75}}, "name":"conv2/norm2", "top":"conv2/norm2", "bottom":"conv2/3x3", "type":"LRN", "category":"OTHERS", "key":"conv2/norm2", "loc":"-45 -275"},
+{"json":{"name":"pool2/3x3_s2", "type":"Pooling", "bottom":"conv2/norm2", "top":"pool2/3x3_s2", "pooling_param":{"pool":"MAX", "kernel_size":3, "stride":2}}, "name":"pool2/3x3_s2", "top":"pool2/3x3_s2", "bottom":"conv2/norm2", "type":"Pooling", "category":"POOLING", "key":"pool2/3x3_s2", "loc":"-45 -375"},
+{"json":{"name":"inception_3a/1x1", "type":"Convolution", "bottom":"pool2/3x3_s2", "top":"inception_3a/1x1", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":64, "kernel_size":1, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"inception_3a/1x1", "top":"inception_3a/1x1", "bottom":"pool2/3x3_s2", "type":"Convolution", "category":"CONVOLUTION", "key":"inception_3a/1x1", "loc":"-145 -575"},
+{"json":{"name":"inception_3a/3x3_reduce", "type":"Convolution", "bottom":"pool2/3x3_s2", "top":"inception_3a/3x3_reduce", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":96, "kernel_size":1, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"inception_3a/3x3_reduce", "top":"inception_3a/3x3_reduce", "bottom":"pool2/3x3_s2", "type":"Convolution", "category":"CONVOLUTION", "key":"inception_3a/3x3_reduce", "loc":"55 -575"}
  ],
-  "linkDataArray": [
+  "linkDataArray": [ 
 {"blob_name":"data", "from":"data_TRAIN", "to":"conv1/7x7_s2", "fromPort":"T", "toPort":"B", "points":[  ]},
 {"blob_name":"data", "from":"data_TEST", "to":"conv1/7x7_s2", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"conv1/7x7_s2", "from":"conv1/7x7_s2", "to":"pool1/3x3_s2", "fromPort":"T", "toPort":"B", "text":"ReLU", "visible":true, "relu_data":{"name":"conv1/relu_7x7", "type":"ReLU", "bottom":"conv1/7x7_s2", "top":"conv1/7x7_s2"}, "points":[  ]},
+{"blob_name":"conv1/7x7_s2", "from":"conv1/7x7_s2", "to":"pool1/3x3_s2", "fromPort":"T", "toPort":"B", "points":[  ]},
 {"blob_name":"pool1/3x3_s2", "from":"pool1/3x3_s2", "to":"pool1/norm1", "fromPort":"T", "toPort":"B", "points":[  ]},
 {"blob_name":"pool1/norm1", "from":"pool1/norm1", "to":"conv2/3x3_reduce", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"conv2/3x3_reduce", "from":"conv2/3x3_reduce", "to":"conv2/3x3", "fromPort":"T", "toPort":"B", "text":"ReLU", "visible":true, "relu_data":{"name":"conv2/relu_3x3_reduce", "type":"ReLU", "bottom":"conv2/3x3_reduce", "top":"conv2/3x3_reduce"}, "points":[  ]},
-{"blob_name":"conv2/3x3", "from":"conv2/3x3", "to":"conv2/norm2", "fromPort":"T", "toPort":"B", "text":"ReLU", "visible":true, "relu_data":{"name":"conv2/relu_3x3", "type":"ReLU", "bottom":"conv2/3x3", "top":"conv2/3x3"}, "points":[  ]},
+{"blob_name":"conv2/3x3_reduce", "from":"conv2/3x3_reduce", "to":"conv2/3x3", "fromPort":"T", "toPort":"B", "points":[  ]},
+{"blob_name":"conv2/3x3", "from":"conv2/3x3", "to":"conv2/norm2", "fromPort":"T", "toPort":"B", "points":[  ]},
 {"blob_name":"conv2/norm2", "from":"conv2/norm2", "to":"pool2/3x3_s2", "fromPort":"T", "toPort":"B", "points":[  ]},
 {"blob_name":"pool2/3x3_s2", "from":"pool2/3x3_s2", "to":"inception_3a/1x1", "fromPort":"T", "toPort":"B", "points":[  ]},
 {"blob_name":"pool2/3x3_s2", "from":"pool2/3x3_s2", "to":"inception_3a/3x3_reduce", "fromPort":"T", "toPort":"B", "points":[  ]}
@@ -314,8 +316,8 @@ function remove_quotation(str) {
 
 
 
-  <button onclick="save_to_image()" style="display:none;">Render as image</button>
-  <button onclick="makeSVG()" style="display:none;">Render as SVG</button>
+  <button onclick="save_to_image()" style="display:block;">Render as image</button>
+  <button onclick="makeSVG()" style="display:block;">Render as SVG</button>
   <div id="SVGArea"></div>
   <div id="newArea"></div>
   <div>

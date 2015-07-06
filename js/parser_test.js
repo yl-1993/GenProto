@@ -3,6 +3,19 @@ var str_sp_remove = function(str) {
   return str.replace(/\s/g, "");
 };
 
+// translate type to category for parsing
+var type2category = function(str) {
+  'use strict';
+  str = str.toUpperCase();
+  if (str == "CONVOLUTION" || str == "POOLING" || str.search("DATA") >= 0){ // type is pooling
+    return str;
+  } else if (str.search("LOSS") >= 0 || str.search("ACCURACY") >= 0) { // contain loss or accuracy
+    return "LOSS";
+  } else { // other type, such as LRN, BN, CONCAT
+    return "OTHERS";
+  }
+}
+
 //split a prototxt layer string to array
 var layer2arr = function(str) {
   'use strict';
@@ -211,6 +224,7 @@ function wrap_model(nodes) {
     }
     if(nodes[i].type){
       new_node.type = nodes[i].type;
+      new_node.category = type2category(nodes[i].type);
     }
     if (nodes[i].include) {
       new_node.key = nodes[i].name + '_' + nodes[i].include.phase;

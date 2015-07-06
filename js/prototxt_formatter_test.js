@@ -43,7 +43,7 @@ var json_obj2prototxt = function(obj, indent) {
 var add_quote = function(z) {
   'use strict';
   if (isNaN(parseFloat(z))) {
-    if (z == "TRAIN" || z == "TEST" || z == "LMDB" || z == "MAX" || z === true || z === false) {
+    if (z == "TRAIN" || z == "TEST" || z == "LMDB" || z == "MAX" || z == "AVE" || z === true || z === false) {
       return z;
     } else {
       return "\"" + z + "\"";
