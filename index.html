@@ -50,6 +50,32 @@
     //gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
     //compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
   }
+  
+
+  function showLoadingDiv() {            
+    document.getElementById("overlap-bg").style.display ="block";
+    document.getElementById("overlap-show").style.display ="block";
+  }
+  function hideLoadingDiv() {
+    document.getElementById("overlap-bg").style.display ='none';
+    document.getElementById("overlap-show").style.display ='none';
+  }
+  function gen_model() {
+    showLoadingDiv();
+    var worker =new Worker("./js/parser_test.js"); //创建一个Worker对象并向它传递将在新线程中执行的脚本的URL
+    var data = {};
+    data.prototxt = document.getElementById("prototxt").value;
+    worker.postMessage(data);              //向worker发送数据
+    worker.onmessage =function(evt){      //接收worker传过来的数据函数
+      var _model = go.Model.fromJson(evt.data);
+      document.getElementById("mySavedModel").value = gen_loc_from_layers(_model["nodeDataArray"], 
+        _model["linkDataArray"], _model);
+      load();
+      setTimeout('hideLoadingDiv()', 3000);
+      //hideLoadingDiv();
+    }
+  }
+
   // add an SVG rendering of the diagram at the end of this page
   function makeSVG() {
     var svg = myDiagram.makeSvg({
@@ -148,29 +174,15 @@
 </script>
 
 <script>
-function gen_simplified_struct() {
-  save();
+  function gen_simplified_struct() {
+    save();
 
-  var _struct_json = document.getElementById("mySavedModel").value;
-  var _model = go.Model.fromJson(_struct_json);
-  //console.log(_model["nodeDataArray"]);
-  document.getElementById("mySavedModel").value = gen_loc_from_layers(_model["nodeDataArray"], _model["linkDataArray"], _model);
-  load();
-}
-
-// function remove_quotation(str) {
-//   if (str) {
-//     var len = str.length;
-//     if (len > 2) {
-//       if (str[0] == "\"" && str[len - 1] == "\"") {
-//         return str.substr(1, len-2);
-//       } else {
-//         return str;
-//       }
-//     }
-//   }
-//   return str;
-// }
+    var _struct_json = document.getElementById("mySavedModel").value;
+    var _model = go.Model.fromJson(_struct_json);
+    //console.log(_model["nodeDataArray"]);
+    document.getElementById("mySavedModel").value = gen_loc_from_layers(_model["nodeDataArray"], _model["linkDataArray"], _model);
+    load();
+  }
 </script>
 
 <script>
@@ -190,6 +202,8 @@ function gen_simplified_struct() {
 <div style="text-align:center;">
 <h1>Caffe Prototxt Generator</h1>
 </div>
+
+<!-- Loading overlap -->
 <div id="overlap-bg"></div>
 <div id="overlap-show">
   <div class="sk-spinner sk-spinner-cube-grid" style="text-align:center">
@@ -231,7 +245,8 @@ function gen_simplified_struct() {
           <tr>
             <td><button onclick="gen_simplified_struct()" style="display:block;">Simplify</button></td>
             <td><button id="SaveButton" onclick="save()" style="display:block;">Save</button></td>
-            <td><button onclick="gen_model_from_prototxt()" style="display:block;">Load</button></td>
+            <!-- <td><button onclick="gen_model_from_prototxt()" style="display:block;">Load</button></td> -->
+            <td><button onclick="gen_model()" style="display:block;">Load</button></td>
           </tr>
           <tr>
             <td><button onclick="saveTextAsFile()" style="display:block;">Download</button></td>

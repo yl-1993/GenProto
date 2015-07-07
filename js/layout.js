@@ -204,9 +204,9 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
     }
   }
 
-  console.log(_edge_from);
-  console.log(bottom_list);
-  console.log(top_list);
+  // console.log(_edge_from);
+  // console.log(bottom_list);
+  // console.log(top_list);
   for (i = 0; i < _link_data_num; ++i) {
     for (j = 0; j < bottom_list.length; ++j) {
       for (k = 0; k < top_list.length; ++k) {

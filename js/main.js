@@ -11,7 +11,7 @@ function init() {
         "toolManager.mouseWheelBehavior": go.ToolManager.WheelZoom, // enable mouse wheel event
         "LinkDrawn": showLinkLabel, // this DiagramEvent listener is defined below
         "LinkRelinked": showLinkLabel,
-        "animationManager.duration": 800, // slightly longer than default (600ms) animation
+        "animationManager.duration": 0, // slightly longer than default (600ms) animation
         "ChangedSelection": onSelectionChanged,
         "TextEdited": onTextEdited,
         mouseOver: doMouseOver,

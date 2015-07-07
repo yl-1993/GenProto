@@ -243,7 +243,7 @@ var removeReluLayer = function(nodes, links) {
   for (i = 0; i < links.length; i += 1){
     link_hash[links[i].blob_name] = links[i];
   }
-  console.log(link_hash);
+  //console.log(link_hash);
   for (i = 0; i < nodes.length; i += 1) {
     if (nodes[i].type == 'ReLU' && nodes[i].top == nodes[i].bottom) {
       if(link_hash[nodes[i].top]){
@@ -256,21 +256,12 @@ var removeReluLayer = function(nodes, links) {
   return res;
 };
 
-function showLoadingDiv() {            
-  document.getElementById("overlap-bg").style.display ="block";
-  document.getElementById("overlap-show").style.display ="block";
-}
-function hideLoadingDiv() {
-  document.getElementById("overlap-bg").style.display ='none';
-  document.getElementById("overlap-show").style.display ='none';
-}
 
-function gen_model_from_prototxt() {
+function gen_model_from_prototxt(prototxt) {
   'use strict';
-
-  showLoadingDiv();
+  
   // parsing the prototxt
-  var prototxt = document.getElementById("prototxt").value;
+  //var prototxt = document.getElementById("prototxt").value;
   var layers_arr = layer_split(prototxt);
   var nodeDataArray = [];
   var linkDataArray = [];
@@ -294,11 +285,23 @@ function gen_model_from_prototxt() {
   _struct_json["nodeDataArray"] = nodeDataArray;
   _struct_json["linkDataArray"] = linkDataArray;
 
-  var _model = go.Model.fromJson(_struct_json);
-  document.getElementById("mySavedModel").value = gen_loc_from_layers(_model[
-    "nodeDataArray"], _model["linkDataArray"], _model);
-  load();
+  return _struct_json;
+  // var _model = go.Model.fromJson(_struct_json);
+  // document.getElementById("mySavedModel").value = gen_loc_from_layers(_model[
+  //   "nodeDataArray"], _model["linkDataArray"], _model);
+  // return gen_loc_from_layers(_model[
+  //   "nodeDataArray"], _model["linkDataArray"], _model);
+  // load();
 
-  hideLoadingDiv();
 }
 
+
+
+/** Multi Thread **/
+onmessage =function (evt){
+
+  var d = evt.data;//通过evt.data获得发送来的数据
+  var res = gen_model_from_prototxt(d.prototxt);
+  postMessage( res );//将获取到的数据发送会主线程
+
+}
