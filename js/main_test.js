@@ -409,6 +409,9 @@ function init() {
             name: "Convolution",
             category: "CONVOLUTION"
           }, {
+            name: "InnerProduct",
+            category: "INNERPRODUCT"
+          }, {
             name: "Pooling",
             category: "POOLING"
           }, {

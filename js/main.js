@@ -366,6 +366,9 @@ function init() {
             name: "POOLING",
             category: "POOLING"
           }, {
+            name: "POOLING",
+            category: "POOLING"
+          }, {
             name: "SOFTMAX_LOSS",
             category: "SOFTMAX_LOSS"
           }, {

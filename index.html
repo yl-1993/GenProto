@@ -54,11 +54,9 @@
 
   function showLoadingDiv() {            
     document.getElementById("overlap-bg").style.display ="block";
-    document.getElementById("overlap-show").style.display ="block";
   }
   function hideLoadingDiv() {
     document.getElementById("overlap-bg").style.display ='none';
-    document.getElementById("overlap-show").style.display ='none';
   }
   function gen_model() {
     showLoadingDiv();
@@ -71,7 +69,7 @@
       document.getElementById("mySavedModel").value = gen_loc_from_layers(_model["nodeDataArray"], 
         _model["linkDataArray"], _model);
       load();
-      setTimeout('hideLoadingDiv()', 3000);
+      setTimeout('hideLoadingDiv()', _model["nodeDataArray"].length*50+500);
       //hideLoadingDiv();
     }
   }
@@ -204,21 +202,7 @@
 </div>
 
 <!-- Loading overlap -->
-<div id="overlap-bg"></div>
-<div id="overlap-show">
-  <div class="sk-spinner sk-spinner-cube-grid" style="text-align:center">
-    <div class="sk-cube"></div>
-    <div class="sk-cube"></div>
-    <div class="sk-cube"></div>
-    <div class="sk-cube"></div>
-    <div class="sk-cube"></div>
-    <div class="sk-cube"></div>
-    <div class="sk-cube"></div>
-    <div class="sk-cube"></div>
-    <div class="sk-cube"></div>
-    <h4 style="color:white">Loading ...</h4>
-  </div>
-</div>
+<div id="overlap-bg"><img src="./loading.gif" style="height:100%"></div>
 
 <div id="sample">
   <div style="width:100%; white-space:nowrap;">

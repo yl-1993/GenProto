@@ -7,7 +7,7 @@ var str_sp_remove = function(str) {
 var type2category = function(str) {
   'use strict';
   str = str.toUpperCase();
-  if (str == "CONVOLUTION" || str == "POOLING" || str.search("DATA") >= 0){ // type is pooling
+  if (str == "CONVOLUTION" || str == "POOLING" || str == "INNERPRODUCT" || str.search("DATA") >= 0){ // type is pooling
     return str;
   } else if (str.search("LOSS") >= 0 || str.search("ACCURACY") >= 0) { // contain loss or accuracy
     return "LOSS";

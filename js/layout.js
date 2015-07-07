@@ -219,7 +219,6 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
           if (k == 0) {
             _link_data_array[i]["fromPort"] = "L";
             _link_data_array[i]["toPort"] = "L"; 
-            console.log(_link_data_array[i]);
           } else if (k == top_list.length - 1) {
             _link_data_array[i]["fromPort"] = "R";
             _link_data_array[i]["toPort"] = "R"; 
