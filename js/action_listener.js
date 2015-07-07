@@ -48,26 +48,26 @@ function updateProperties(data) {
         } else {
           // filler default setting
           //console.log(data["weight_filler_type"]);
-          if (param_list[i] == "weight_filler") {
-            if (!data[param_list[i]+"_type"]) {
-              // initialize
-              data[param_list[i]] = "default";
-              data[param_list[i]+"_type"] = "xavier";
-            }
-            document.getElementById(param_list[i] + "_type").value = data[param_list[i]+"_type"] || "xavier";
-            show_network_filler(data, document.getElementById(param_list[i] + "_type").value, param_list[i]);
-          } else if (param_list[i] == "bias_filler" ||
-                     param_list[i] == "scale_filler" ||
-                     param_list[i] == "shift_filler" ||
-                     param_list[i] == "data_filler" ) {
-            if (!data[param_list[i]+"_type"]) {
-              // initialize
-              data[param_list[i]] = "default";
-              data[param_list[i]+"_type"] = "constant";
-            }
-            document.getElementById(param_list[i] + "_type").value = data[param_list[i]+"_type"] || "constant";
-            show_network_filler(data, document.getElementById(param_list[i] + "_type").value, param_list[i]);
-          }
+          // if (param_list[i] == "weight_filler") {
+          //   if (!data[param_list[i]+"_type"]) {
+          //     // initialize
+          //     data[param_list[i]] = "default";
+          //     data[param_list[i]+"_type"] = "xavier";
+          //   }
+          //   document.getElementById(param_list[i] + "_type").value = data[param_list[i]+"_type"] || "xavier";
+          //   show_network_filler(data, document.getElementById(param_list[i] + "_type").value, param_list[i]);
+          // } else if (param_list[i] == "bias_filler" ||
+          //            param_list[i] == "scale_filler" ||
+          //            param_list[i] == "shift_filler" ||
+          //            param_list[i] == "data_filler" ) {
+          //   if (!data[param_list[i]+"_type"]) {
+          //     // initialize
+          //     data[param_list[i]] = "default";
+          //     data[param_list[i]+"_type"] = "constant";
+          //   }
+          //   document.getElementById(param_list[i] + "_type").value = data[param_list[i]+"_type"] || "constant";
+          //   show_network_filler(data, document.getElementById(param_list[i] + "_type").value, param_list[i]);
+          // }
         }
 
         //console.log('data.'+param_list[i]);

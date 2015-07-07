@@ -37,8 +37,8 @@
     _model = prettifyJSONString(_model);
     document.getElementById("mySavedModel").value = _model;
     document.getElementById("prototxt").value = save_prototxt(eval('['+_model+']'));
-    gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
-    compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
+    //gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
+    //compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
     myDiagram.isModified = false;
   }
 
@@ -193,7 +193,6 @@
 <script>
   //console.log(_layers_info);
   _layers = _layers_info[0];
-  _filler_info = ["value", "min", "max", "mean", "std"];
 </script>
 </head>
 <body onload="init()">
@@ -202,7 +201,7 @@
 </div>
 
 <!-- Loading overlap -->
-<div id="overlap-bg"><img src="./loading.gif" style="height:100%"></div>
+<div id="overlap-bg"><img src="./img/loading.gif" style="height:100%"></div>
 
 <div id="sample">
   <div style="width:100%; white-space:nowrap;">

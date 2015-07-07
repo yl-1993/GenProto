@@ -14,14 +14,14 @@ function get_param_list(_raw_param) {
       for (var i = 0; i < obj_list.length; ++i) {
         for (var _key_obj in obj_list[i]) {
           param_list.push(_key_obj);
-          if (_key_obj == "weight_filler" || _key_obj == "bias_filler" ||
-              _key_obj == "scale_filler" || _key_obj == "shift_filler" ||
-              _key_obj == "data_filler") {
-            param_list.push(_key_obj+"_type");
-            for (var j = 0;j < _filler_info.length; ++j) {
-              param_list.push(_key_obj+"_"+_filler_info[j]);
-            }
-          }
+          // if (_key_obj == "weight_filler" || _key_obj == "bias_filler" ||
+          //     _key_obj == "scale_filler" || _key_obj == "shift_filler" ||
+          //     _key_obj == "data_filler") {
+          //   param_list.push(_key_obj+"_type");
+          //   for (var j = 0;j < _filler_info.length; ++j) {
+          //     param_list.push(_key_obj+"_"+_filler_info[j]);
+          //   }
+          // }
         }
       }
     }

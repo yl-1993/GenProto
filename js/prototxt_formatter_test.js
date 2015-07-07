@@ -20,9 +20,7 @@ var json_obj2prototxt = function(obj, indent) {
   var i, j, k;
   for (key in obj) {
     if (obj[key] instanceof Object && !(obj[key] instanceof Array)) {
-      res += spaces(indent + 1) + key + " " + json_obj2prototxt(obj[key],
-        indent +
-        1);
+      res += spaces(indent + 1) + key + " " + json_obj2prototxt(obj[key], indent + 1);
     } else if (obj[key] instanceof Array) {
 
       for (i = 0; i < obj[key].length; i += 1) {
@@ -43,7 +41,7 @@ var json_obj2prototxt = function(obj, indent) {
 var add_quote = function(z) {
   'use strict';
   if (isNaN(parseFloat(z))) {
-    if (z == "TRAIN" || z == "TEST" || z == "LMDB" || z == "LEVELDB" || 
+    if (z == "TRAIN" || z == "TEST" || z == "LMDB" || z == "LEVEL_DB" || 
       z == "MAX" || z == "AVE" || z === true || z === false) {
       return z;
     } else {

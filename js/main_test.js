@@ -376,24 +376,31 @@ function init() {
         model: new go.GraphLinksModel([ // specify the contents of the Palette
           {
             name: "Data",
+            type: "Data",
             category: "DATA"
           }, {
             name: "SimpleData",
+            type: "SimpleData",
             category: "DATA"
           }, {
             name: "RawData",
+            type: "RawData",
             category: "DATA"
           }, {
             name: "PairData",
+            type: "PairData",
             category: "DATA"
           }, {
             name: "ImageData",
+            type: "ImageData",
             category: "DATA"
           }, {
             name: "DummyData",
+            type: "DummyData",
             category: "DATA"
           }, {
             name: "MemoryData",
+            type: "MemoryData",
             category: "DATA"
           }, 
         ])
@@ -407,36 +414,51 @@ function init() {
         model: new go.GraphLinksModel([ // specify the contents of the Palette
           {
             name: "Convolution",
+            type: "Convolution",
             category: "CONVOLUTION"
           }, {
             name: "InnerProduct",
+            type: "InnerProduct",
             category: "INNERPRODUCT"
           }, {
             name: "Pooling",
+            type: "Pooling",
             category: "POOLING"
           }, {
             name: "SoftmaxLoss",
+            type: "SoftmaxLoss",
             category: "LOSS"
           }, {
             name: "Accuracy",
+            type: "Accuracy",
             category: "LOSS"
           }, {
             name: "Concat",
+            type: "Concat",
             category: "OTHERS"
           }, {
             name: "BN",
+            type: "BN",
             category: "OTHERS"
           }, {
             name: "LRN",
+            type: "LRN",
+            category: "OTHERS"
+          }, {
+            name: "Eltwise",
+            type: "Eltwise",
             category: "OTHERS"
           }, {
             name: "Relu",
+            type: "Relu",
             category: "RELU"
           }, {
             name: "Sigmoid",
+            type: "Sigmoid",
             category: "SIDMOID"
           }, {
             name: "Dropout",
+            type: "Dropout",
             category: "DROPOUT"
           },
         ])
