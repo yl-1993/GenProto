@@ -328,14 +328,14 @@ function init() {
             fill: "#F8F8F8",
             stroke: null
           }),
-        $(go.TextBlock, "Yes", // the label
+        $(go.TextBlock, "blob", // the label (default name)
           {
             textAlign: "center",
             font: "10pt helvetica, arial, sans-serif",
             stroke: "#333333",
             editable: true
           },
-          new go.Binding("text", "text").makeTwoWay())
+          new go.Binding("text", "blob_name").makeTwoWay())
       )
     );
 
@@ -343,8 +343,12 @@ function init() {
   // This listener is called by the "LinkDrawn" and "LinkRelinked" DiagramEvents.
   function showLinkLabel(e) {
     var label = e.subject.findObject("LABEL");
-    if (label !== null) label.visible = (e.subject.fromNode.data.figure ===
-      "Diamond");
+    //console.log(e.subject.fromNode.data);
+    // if (label !== null) label.visible = (e.subject.fromNode.data.figure ===
+    //   "Diamond");
+    if (label !== null) {
+      label.visible = true;
+    }
   }
 
   // Make all ports on a node visible when the mouse is over the node
@@ -425,8 +429,8 @@ function init() {
             type: "Pooling",
             category: "POOLING"
           }, {
-            name: "SoftmaxLoss",
-            type: "SoftmaxLoss",
+            name: "SoftmaxWithLoss",
+            type: "SoftmaxWithLoss",
             category: "LOSS"
           }, {
             name: "Accuracy",
@@ -449,8 +453,8 @@ function init() {
             type: "Eltwise",
             category: "OTHERS"
           }, {
-            name: "Relu",
-            type: "Relu",
+            name: "ReLU",
+            type: "ReLU",
             category: "RELU"
           }, {
             name: "Sigmoid",

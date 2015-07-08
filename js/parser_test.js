@@ -191,13 +191,14 @@ var generate_link = function(nodes) {
           blob_name: blob.blob_name,
           from: blob.from[j],
           to: blob.to[i],
+          visible: true,
           fromPort: 'T',
           toPort: 'B'
         };
-        if (blob.text) {
-          newLink.text = blob.text;
-          newLink.visible = true;
-        }
+        // if (blob.text) {
+        //   newLink.text = blob.text;
+        //   newLink.visible = true;
+        // }
         links.push(newLink);
       }
     }

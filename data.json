@@ -9,12 +9,12 @@ _layers_info = [{
 	"Convolution": [{"convolution_param": [{"num_output":""}, {"bias_term":"true"}, {"pad":"0"}, {"pad_h":"0"}, {"pad_w":"0"}, {"kernel_size":""}, {"kernel_h":""}, {"kernel_w":""}, {"group":"1"}, {"stride":"1"}, {"stride_h":""}, {"stride_w":""}, {"weight_filler":[{"type":"xavier"}]}, {"bias_filler":{"type":"constant", "value":"0"}}]}],
 	"Pooling": [{"pooling_param": [{"pool":"MAX"}, {"pad":"0"}, {"pad_h":"0"}, {"pad_w":"0"}, {"kernel_size":""}, {"kernel_h":"0"}, {"kernel_w":""}, {"stride":"1"}, {"stride_h":""}, {"stride_w":""}]}],
 	"Accuracy": [{"accuracy_param": [{"top_k":"1"}]}],
-	"Relu": [{"relu_param": [{"negative_slope":"0"}]}],
+	"ReLU": [{"relu_param": [{"negative_slope":"0"}]}],
 	"Dropout": [{"dropout_param": [{"dropout_ratio":"0.5"}]}],
 	"BN": [{"bn_param": [{"scale_filler":""}, {"shift_filler":""}, {"var_eps":""}, {"moving_average":"false"}, {"decay":"0.05"}]}],
 	"Concat": [{"concat_param": [{"concat_dim":"1"}]}],
 	"Eltwise": [{"eltwise_param":[{"operation":"MAX"}]}],
 	"Sigmoid": [{}],
-	"SoftmaxLoss": [{}],
+	"SoftmaxWithLoss": [{}],
 	"BLOB": [{}]
 	}]

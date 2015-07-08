@@ -308,16 +308,16 @@
 {"json":{"name":"inception_3a/3x3_reduce", "type":"Convolution", "bottom":"pool2/3x3_s2", "top":"inception_3a/3x3_reduce", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":96, "kernel_size":1, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"inception_3a/3x3_reduce", "top":"inception_3a/3x3_reduce", "bottom":"pool2/3x3_s2", "type":"Convolution", "category":"CONVOLUTION", "key":"inception_3a/3x3_reduce", "loc":"55 -575"}
  ],
   "linkDataArray": [ 
-{"blob_name":"data", "from":"data_TRAIN", "to":"conv1/7x7_s2", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"data", "from":"data_TEST", "to":"conv1/7x7_s2", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"conv1/7x7_s2", "from":"conv1/7x7_s2", "to":"pool1/3x3_s2", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"pool1/3x3_s2", "from":"pool1/3x3_s2", "to":"pool1/norm1", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"pool1/norm1", "from":"pool1/norm1", "to":"conv2/3x3_reduce", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"conv2/3x3_reduce", "from":"conv2/3x3_reduce", "to":"conv2/3x3", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"conv2/3x3", "from":"conv2/3x3", "to":"conv2/norm2", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"conv2/norm2", "from":"conv2/norm2", "to":"pool2/3x3_s2", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"pool2/3x3_s2", "from":"pool2/3x3_s2", "to":"inception_3a/1x1", "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"pool2/3x3_s2", "from":"pool2/3x3_s2", "to":"inception_3a/3x3_reduce", "fromPort":"T", "toPort":"B", "points":[  ]}
+{"blob_name":"data", "from":"data_TRAIN", "to":"conv1/7x7_s2", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
+{"blob_name":"data", "from":"data_TEST", "to":"conv1/7x7_s2", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
+{"blob_name":"conv1/7x7_s2", "from":"conv1/7x7_s2", "to":"pool1/3x3_s2", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
+{"blob_name":"pool1/3x3_s2", "from":"pool1/3x3_s2", "to":"pool1/norm1", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
+{"blob_name":"pool1/norm1", "from":"pool1/norm1", "to":"conv2/3x3_reduce", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
+{"blob_name":"conv2/3x3_reduce", "from":"conv2/3x3_reduce", "to":"conv2/3x3", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
+{"blob_name":"conv2/3x3", "from":"conv2/3x3", "to":"conv2/norm2", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
+{"blob_name":"conv2/norm2", "from":"conv2/norm2", "to":"pool2/3x3_s2", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
+{"blob_name":"pool2/3x3_s2", "from":"pool2/3x3_s2", "to":"inception_3a/1x1", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
+{"blob_name":"pool2/3x3_s2", "from":"pool2/3x3_s2", "to":"inception_3a/3x3_reduce", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]}
  ]}
       </textarea>
     </div>

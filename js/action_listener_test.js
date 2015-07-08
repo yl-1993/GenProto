@@ -6,6 +6,8 @@ function onSelectionChanged(e) {
   var node = e.diagram.selection.first();
   if (node instanceof go.Node) {
     updateProperties(node.data);
+  } else if (node instanceof go.Link) {
+    updateLinkProperties(node.data);
   } else {
     updateProperties(null);
   }
@@ -19,6 +21,10 @@ function onTextEdited(e) {
   var node = tb.part;
   if (node instanceof go.Node) {
     updateProperties(node.data);
+  } else if (node instanceof go.Link){
+    updateLinkProperties(node.data);
+  } else {
+    updateProperties(null);
   }
 }
 
@@ -59,16 +65,28 @@ function json_edit(){
 
 
 // Update the HTML elements for editing the properties of the currently selected node, if any
+// TIPS: If you want to change the prototxt, you only need to change 'data' here
 function updateProperties(data) {
   'use strict';
   if(data === null){
     return;
   }
+
   var i, j;
   var param_obj, param_key;
   var item_list, item_key;
   if (data.json == null){
+    // drag and initilize the node
     data.json = {};
+    // set key by calling setKeyForNodeData
+    if (myDiagram.model.findNodeDataForKey(data.name) == null) {
+      myDiagram.model.setKeyForNodeData(data,data.name);
+    } else {
+      //alert('This node has already existed!');
+      myDiagram.model.removeNodeData(data);
+      return;
+    }
+    
     data.json.name = data.name;
     data.json.type = data.type;
     // console.log(_layers[data.category]);
@@ -80,23 +98,17 @@ function updateProperties(data) {
         item_list = param_obj[param_key];
         for (j = 0 ; j < item_list.length; ++j) {
           for (item_key in item_list[j]) {
-            if (typeof(item_list[j][item_key]) == "object") {
-              data.json[param_key][item_key] = item_list[j][item_key];
-              console.log(item_list[j][item_key]);
-            } else {
-              data.json[param_key][item_key] = item_list[j][item_key];
-            }
+            data.json[param_key][item_key] = item_list[j][item_key];
           }
         }
       }
     }
-    // var param_list = _layers[data.category];
-    // for (i = 0; i < param_list.length; ++i) {
-    //   data.json[""+param_list[i]] = 1;
-    // }
-    // data.json[""+param_list[0]] = "1";
-    //console.log(data.json)
+  } else {
+    // modify the node's name
+    //data.key = data.name;
+    data.json.name = data.name; 
   }
+
   var resizeTextarea = function(element) {
     element.style.height = '24px';
     element.style.height = element.scrollHeight + 100 + 'px';
@@ -114,9 +126,24 @@ function updateProperties(data) {
   return;
 }
 
+
+function updateLinkProperties(data) {
+  'use strict'
+
+  data.blob_name = data.from;
+
+  console.log(data.from)
+  console.log(data.to)
+
+  return;
+}
+
 function saveEditedLayer() {
   'use strict';
   var node = myDiagram.selection.first();
+  if (node === null) {
+    return;
+  }
   // maxSelectionCount = 1, so there can only be one Part in this collection
   var text = document.getElementById("layer_edit").value;
   var data = node.data;

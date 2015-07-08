@@ -60,11 +60,13 @@ function save_prototxt(_model) {
   var _link_data_array = _model[0]['linkDataArray'];
   var jsons = [];
   var i,j,k;
+  //reconstruct 'top' and 'bottom' based on linkDataArray
+  
+  //translate json to prototxt
   for(i = 0; i < _node_data_array.length; i += 1){
     var json = _node_data_array[i].json;
     prototxt += json2prototxt_layer(json);
   }
-
   //look for relu layer (hidden)
   for(i = 0; i < _link_data_array.length; i += 1){
     if(_link_data_array[i].text == "ReLU"){
