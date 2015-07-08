@@ -6,6 +6,7 @@
 <script src="./assets/js/go.js"></script>
 <script src="./assets/js/jsoneditor.js"></script>
 <link href="./assets/css/genproto.css" rel="stylesheet" type="text/css" />
+<link href="./assets/css/jquery.toastmessage.css" rel="stylesheet" type="text/css" />
 <script src="genproto.js"></script>
 <script src="./js/util.js"></script>
 <script id="code">
@@ -29,6 +30,12 @@
 
 <script src="./js/layout.js"></script>
 <script src="./js/stat.js"></script>
+
+
+<script src="./assets/js/jquery-1.5.min.js"></script>
+<script src="./assets/js/jquery.toastmessage.js"></script>
+<script src="./js/toast_msg.js"></script>
+
 <script>
   //diagram -> saved_model
   function save() {
@@ -201,7 +208,7 @@
 </div>
 
 <!-- Loading overlap -->
-<div id="overlap-bg"><img src="./img/loading.gif" style="height:100%"></div>
+<div id="overlap-bg"><img src="./assets/img/loading.gif" style="height:100%"></div>
 
 <div id="sample">
   <div style="width:100%; white-space:nowrap;">
@@ -277,6 +284,7 @@
     </span>
 
   </div>
+  <button onclick="showErrorToast()">error</button>
   <style>
   .text-bottom .panel{
     width: 600px;

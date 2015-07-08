@@ -83,6 +83,7 @@ function updateProperties(data) {
       myDiagram.model.setKeyForNodeData(data,data.name);
     } else {
       //alert('This node has already existed!');
+      showErrorToast("Layer with the same name has already existed!");
       myDiagram.model.removeNodeData(data);
       return;
     }

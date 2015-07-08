@@ -46,21 +46,21 @@ function get_param_default(_raw_param) {
   return param_default;
 }
 
-String.prototype.trim = function(patterns) {
-  var result = "";
-  for (var i = 0; i < this.length; i++) {
-    var valid = true;
-    for (var j = 0; j < patterns.length; j++) {
-      if (this[i] == patterns[j]) {
-        valid = false;
-      }
-    }
-    if (valid === true) {
-      result += this[i];
-    }
-  }
-  return result;
-};
+// String.prototype.trim = function(patterns) {
+//   var result = "";
+//   for (var i = 0; i < this.length; i++) {
+//     var valid = true;
+//     for (var j = 0; j < patterns.length; j++) {
+//       if (this[i] == patterns[j]) {
+//         valid = false;
+//       }
+//     }
+//     if (valid === true) {
+//       result += this[i];
+//     }
+//   }
+//   return result;
+// };
 
 Array.prototype.contains = function(obj) {
     var i = this.length;
