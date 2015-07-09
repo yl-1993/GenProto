@@ -11,6 +11,7 @@
 <script src="./js/util.js"></script>
 <script id="code">
   var lastStroked = null;  // this remembers the last highlit Shape
+  var isBlobDisplay = true;
 </script>
 
 
@@ -79,6 +80,19 @@
       setTimeout('hideLoadingDiv()', _model["nodeDataArray"].length*50+500);
       //hideLoadingDiv();
     }
+  }
+
+  function changeBlobDisplay() {
+    var _saveModel = document.getElementById("mySavedModel").value;
+    var _model = go.Model.fromJson(_saveModel);
+    isBlobDisplay = !isBlobDisplay;
+    if (isBlobDisplay) { // show blob
+      document.getElementById('blob_display_btn').innerHTML = 'HideBlob';
+    } else { // hide blob
+      document.getElementById('blob_display_btn').innerHTML = 'ShowBlob';
+    }
+    _model["linkDataArray"] = changeBlobStatus(_model["linkDataArray"], isBlobDisplay);
+    myDiagram.model = _model; // reload the UI
   }
 
   // add an SVG rendering of the diagram at the end of this page
@@ -244,6 +258,9 @@
               <button onclick="clickUpload()" style="display:block;">Upload</button>
               <input type="file" name="file" id="upload_file" style="display:none;" onchange="uploadAndSubmit();"/>
             </td>
+          </tr>
+          <tr>
+            <td><button id="blob_display_btn" onclick="changeBlobDisplay()" style="display:block;">HideBlob</button></td>
           </tr>
         </table>
         <div style="margin-top: 10px;">

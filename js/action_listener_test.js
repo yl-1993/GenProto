@@ -8,6 +8,7 @@ function onSelectionChanged(e) {
     updateProperties(node.data);
   } else if (node instanceof go.Link) {
     updateLinkProperties(node.data);
+    console.log(node.data);
   } else {
     updateProperties(null);
   }
@@ -22,10 +23,12 @@ function onTextEdited(e) {
   if (node instanceof go.Node) {
     updateProperties(node.data);
   } else if (node instanceof go.Link){
+    console.log(node.data);
     updateLinkProperties(node.data);
   } else {
     updateProperties(null);
   }
+  //myDiagram.commandHandler.undo();
 }
 
 /* json editor
@@ -61,8 +64,31 @@ function json_edit(){
 */
 
 
+function setKeyForNodeData(data){
+  // set key by calling setKeyForNodeData
+  if (myDiagram.model.findNodeDataForKey(data.name) == null) {
+    myDiagram.model.setKeyForNodeData(data,data.name);
+    return true;
+  } else {
+    showErrorToast("Cannot add layer: Layer with the same name has already existed!");
+    myDiagram.model.removeNodeData(data);
+    return false;
+  }
+}
 
-
+function modifyKeyForNodeData(data){
+  // set key by calling setKeyForNodeData
+  if (myDiagram.model.findNodeDataForKey(data.name) == data) { // new name == old name
+    return true;
+  } else if (myDiagram.model.findNodeDataForKey(data.name) == null) { // new name has not been used
+    myDiagram.model.setKeyForNodeData(data,data.name);
+    return true;
+  } else { // new name has been used
+    myDiagram.model.setDataProperty(data, "name", data.key);
+    showErrorToast("Cannot modify layer's name: Layer with the same name has already existed!");
+    return false;
+  }
+}
 
 // Update the HTML elements for editing the properties of the currently selected node, if any
 // TIPS: If you want to change the prototxt, you only need to change 'data' here
@@ -76,17 +102,11 @@ function updateProperties(data) {
   var param_obj, param_key;
   var item_list, item_key;
   if (data.json == null){
-    // drag and initilize the node
-    data.json = {};
-    // set key by calling setKeyForNodeData
-    if (myDiagram.model.findNodeDataForKey(data.name) == null) {
-      myDiagram.model.setKeyForNodeData(data,data.name);
-    } else {
-      //alert('This node has already existed!');
-      showErrorToast("Layer with the same name has already existed!");
-      myDiagram.model.removeNodeData(data);
+    if (!setKeyForNodeData(data)) {
       return;
     }
+    // drag and initilize the node
+    data.json = {};
     
     data.json.name = data.name;
     data.json.type = data.type;
@@ -104,10 +124,14 @@ function updateProperties(data) {
         }
       }
     }
+    data.json.top = data.name;
   } else {
     // modify the node's name
-    //data.key = data.name;
+    if (!modifyKeyForNodeData(data)) {
+      return;
+    }
     data.json.name = data.name; 
+    data.json.top = data.name;
   }
 
   var resizeTextarea = function(element) {
@@ -131,10 +155,32 @@ function updateProperties(data) {
 function updateLinkProperties(data) {
   'use strict'
 
-  data.blob_name = data.from;
+  if (data.blob_name == null) {
+    data.blob_name = data.from;
+  } else {
+    console.log(data);
+    data.blob_name = data.text;
+  }
 
-  console.log(data.from)
-  console.log(data.to)
+  if (data.from && data.to) {
+    var fromNode = myDiagram.model.findNodeDataForKey(data.from);
+    var toNode = myDiagram.model.findNodeDataForKey(data.to);
+    if (typeof(fromNode.json.top) == "string") {
+      if (fromNode.json.top != data.blob_name) { // more than one top
+        var original_top = fromNode.json.top;
+        fromNode.json.top = [];
+        fromNode.json.top.push(original_top);
+        fromNode.json.top.push(data.blob_name);
+      }
+    } else {
+      if (!fromNode.json.top.contains(data.blob_name)) { // a new top
+        fromNode.json.top.push(data.blob_name);
+      }
+    }
+    // fromNode.json.top = data.blob_name;
+    toNode.json.bottom = data.blob_name;
+    //console.log(fromNode);
+  }
 
   return;
 }
@@ -163,4 +209,14 @@ function saveEditedLayer() {
   save();
   var _model = document.getElementById("mySavedModel").value;
   myDiagram.model = go.Model.fromJson(_model);
+}
+
+
+function changeBlobStatus(linkDataArray, isBlobDisplay) {
+  var linkDataNum = linkDataArray.length;
+  var i;
+  for (i = 0; i < linkDataNum; ++i) {
+    linkDataArray[i].visible = isBlobDisplay;
+  }
+  return linkDataArray;
 }
