@@ -328,7 +328,7 @@ function init() {
             fill: "#F8F8F8",
             stroke: null
           }),
-        $(go.TextBlock, "blob", // the label (default name)
+        $(go.TextBlock, //"blob", // the label (default name)
           {
             textAlign: "center",
             font: "10pt helvetica, arial, sans-serif",

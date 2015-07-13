@@ -273,7 +273,7 @@
           <!--(measured by floating-point calculation)-->
           Calculation magnitude: <b id="calculation">1</b>
         </div>
-        <div style="margin-bottom: 10px;">
+<!--         <div style="margin-bottom: 10px;">
           <div id="propertiesPanel" style="display: none; background-color: aliceblue; border: solid 1px black; overflow-x: auto;padding:10px;">
             <b>Layer Parameter</b><br />
             <table id="propertiesTable">
@@ -287,11 +287,11 @@
             </tr>
             </table>
           </div>
-        </div>
+        </div> -->
         <div style="margin-top:10px">
-          <div id="json_edit_panel">
+          <div id="json_edit_panel" onchange="saveEditedLayer()">
             <textarea id="layer_edit" style="width: 400px; max-height: 600px;"></textarea>
-            <div>
+            <div style="display:none;">
               <button onclick="saveEditedLayer()">save</button>
             </div>
             <div id="editor_holder"></div>

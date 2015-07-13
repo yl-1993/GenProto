@@ -156,12 +156,15 @@ function updateLinkProperties(data) {
   'use strict'
 
   if (data.blob_name == null) {
-    data.blob_name = data.from;
-  } else {
-    console.log(data);
-    data.blob_name = data.text;
-  }
+    //data.blob_name = data.from;
+    myDiagram.model.setDataProperty(data, "blob_name", data.from);
+  } 
+  // else {
+  //   console.log(data.blob_name)
+  //   data.blob_name = data.text;
+  // }
 
+  // add top and bottom
   if (data.from && data.to) {
     var fromNode = myDiagram.model.findNodeDataForKey(data.from);
     var toNode = myDiagram.model.findNodeDataForKey(data.to);
@@ -207,8 +210,8 @@ function saveEditedLayer() {
   // save immediately after modification
   updateProperties(data);
   save();
-  var _model = document.getElementById("mySavedModel").value;
-  myDiagram.model = go.Model.fromJson(_model);
+  //var _model = document.getElementById("mySavedModel").value;
+  //myDiagram.model = go.Model.fromJson(_model);
 }
 
 
