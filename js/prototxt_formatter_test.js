@@ -27,11 +27,15 @@ var json_obj2prototxt = function(obj, indent) {
         if (obj[key][i] instanceof Object) {
           res += spaces(indent + 1) + key + " " + json_obj2prototxt(obj[key][i], indent + 1);
         } else {
-          res += spaces(indent + 1) + key + " : " + add_quote(obj[key][i]) + "\n";
+          if (obj[key] != "") {
+            res += spaces(indent + 1) + key + " : " + add_quote(obj[key][i]) + "\n";
+          }
         }
       }
     } else {
-      res += spaces(indent + 1) + key + " : " + add_quote(obj[key]) + "\n";
+        if (obj[key] != "") {
+          res += spaces(indent + 1) + key + " : " + add_quote(obj[key]) + "\n";
+        }
     }
   }
   res += spaces(indent) + "}\n";
