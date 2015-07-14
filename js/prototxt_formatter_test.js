@@ -8,32 +8,36 @@ var spaces = function(num) {
   return res;
 };
 
-var json2prototxt_layer = function(obj) {
+// tips: whether reserve empty content for tips or not
+var json2prototxt_layer = function(obj, tips) {
   'use strict';
-  return "layer " + json_obj2prototxt(obj, 0);
+  if (tips == undefined) {
+      tips = true;
+  }
+  return "layer " + json_obj2prototxt(obj, 0, tips);
 };
 
-var json_obj2prototxt = function(obj, indent) {
+var json_obj2prototxt = function(obj, indent, tips) {
   'use strict';
   var res = "{\n";
   var key;
   var i, j, k;
   for (key in obj) {
     if (obj[key] instanceof Object && !(obj[key] instanceof Array)) {
-      res += spaces(indent + 1) + key + " " + json_obj2prototxt(obj[key], indent + 1);
+      res += spaces(indent + 1) + key + " " + json_obj2prototxt(obj[key], indent + 1, tips);
     } else if (obj[key] instanceof Array) {
 
       for (i = 0; i < obj[key].length; i += 1) {
         if (obj[key][i] instanceof Object) {
-          res += spaces(indent + 1) + key + " " + json_obj2prototxt(obj[key][i], indent + 1);
+          res += spaces(indent + 1) + key + " " + json_obj2prototxt(obj[key][i], indent + 1, tips);
         } else {
-          if (obj[key] != "") {
+          if (obj[key] != "" || tips) {
             res += spaces(indent + 1) + key + " : " + add_quote(obj[key][i]) + "\n";
           }
         }
       }
     } else {
-        if (obj[key] != "") {
+        if (obj[key] != "" || tips) {
           res += spaces(indent + 1) + key + " : " + add_quote(obj[key]) + "\n";
         }
     }
@@ -68,12 +72,12 @@ function save_prototxt(_model) {
   //translate json to prototxt
   for(i = 0; i < _node_data_array.length; i += 1){
     var json = _node_data_array[i].json;
-    prototxt += json2prototxt_layer(json);
+    prototxt += json2prototxt_layer(json, false);
   }
   //look for relu layer (hidden)
   for(i = 0; i < _link_data_array.length; i += 1){
     if(_link_data_array[i].text == "ReLU"){
-      prototxt += json2prototxt_layer(_link_data_array[i].relu_data);
+      prototxt += json2prototxt_layer(_link_data_array[i].relu_data, false);
     }
   }
   return prototxt;
