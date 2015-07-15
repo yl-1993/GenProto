@@ -119,7 +119,11 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
   for (i = 0; i < cur_bottom.length; ++i) {
     for (j = 0; j < _node_data_num; ++j) {
       if (_node_data_array[j]["key"] == cur_bottom[i]) {
-        _node_data_array[j]["loc"] = get_loc(start_x + i * delta_x, start_y);
+        if (top_list.length >= 2) {
+          _node_data_array[j]["loc"] = get_loc(start_x, start_y - i * delta_y);        
+        } else {
+          _node_data_array[j]["loc"] = get_loc(start_x + i * delta_x, start_y); 
+        }
         break;
       }
     }
