@@ -280,17 +280,21 @@
             <td><button id="blob_display_btn" onclick="changeBlobDisplay()" style="display:block;">HideBlob</button></td>
             <td><button id="numout_display_btn" onclick="changeNumoutDisplay()" style="display:block;">HideNumOutput</button></td>
           </tr>
+          <tr>
+            <td><button onclick="makeSVG()" style="display:block;">Render as SVG</button></td>
+            <td><button onclick="save_to_image()" style="display:block;">Render as image</button></td>
+          </tr>
         </table>
-        <div style="margin-top: 10px;">
+<!--         <div style="margin-top: 10px;">
           Model size is about: <b id="model_size">1</b> MB
-        </div>
-        <div style="">
+        </div> -->
+<!--         <div style="">
           Memory required for data is: <b id="data_memory">1</b> MB
         </div>
-        <div style="margin-bottom: 10px;">
+        <div style="margin-bottom: 10px;"> -->
           <!--(measured by floating-point calculation)-->
-          Calculation magnitude: <b id="calculation">1</b>
-        </div>
+<!--           Calculation magnitude: <b id="calculation">1</b>
+        </div> -->
 <!--         <div style="margin-bottom: 10px;">
           <div id="propertiesPanel" style="display: none; background-color: aliceblue; border: solid 1px black; overflow-x: auto;padding:10px;">
             <b>Layer Parameter</b><br />
@@ -316,10 +320,14 @@
 
           </div>
         </div>
+        <h4>Prototxt:</h4>
+        <div>
+          <textarea style="width: 100%;height: 500px;" id="prototxt"></textarea>
+        </div>
     </span>
 
   </div>
-  <button onclick="showErrorToast()">error</button>
+  <!-- <button onclick="showErrorToast()">error</button> -->
   <style>
   .text-bottom .panel{
     width: 600px;
@@ -331,7 +339,7 @@
     height: 500px;
   }
   </style>
-  <div class="text-bottom">
+  <div class="text-bottom" style="display:none">
     <div class="panel">
       <textarea id="mySavedModel">
 { "class": "go.GraphLinksModel",
@@ -365,15 +373,15 @@
       </textarea>
     </div>
     <div class="panel">
-      <textarea id="prototxt">
-      </textarea>
+<!--       <textarea id="prototxt">
+      </textarea> -->
     </div>
   </div>
 
 
 
-  <button onclick="save_to_image()" style="display:block;">Render as image</button>
-  <button onclick="makeSVG()" style="display:block;">Render as SVG</button>
+  <!-- <button onclick="save_to_image()" style="display:block;">Render as image</button> -->
+  <!-- <button onclick="makeSVG()" style="display:block;">Render as SVG</button> -->
   <div id="SVGArea"></div>
   <div id="newArea"></div>
   <div>

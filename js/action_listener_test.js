@@ -170,6 +170,7 @@ function updateLinkProperties(data) {
   if (data.from && data.to) {
     var fromNode = myDiagram.model.findNodeDataForKey(data.from);
     var toNode = myDiagram.model.findNodeDataForKey(data.to);
+    var num_output;
     if (typeof(fromNode.json.top) == "string") {
       if (fromNode.json.top != data.blob_name) { // more than one top
         var original_top = fromNode.json.top;
@@ -185,6 +186,14 @@ function updateLinkProperties(data) {
     // fromNode.json.top = data.blob_name;
     toNode.json.bottom = data.blob_name;
     //console.log(fromNode);
+    if (fromNode.json.convolution_param) {
+      num_output = fromNode.json.convolution_param.num_output;
+    } else if (fromNode.json.inner_product_param) {
+      num_output = fromNode.json.inner_product_param.num_output;
+    } else {
+      return;
+    }
+    data.num_output = num_output;
   }
 
   return;
@@ -243,7 +252,7 @@ function changeNumoutputsStatus(linkDataArray, isNumoutDisplay) {
         continue;
       }
       linkDataArray[i].num_output = num_output;
-      console.log(linkDataArray[i])
+      //console.log(linkDataArray[i])
     } else {
       linkDataArray[i].num_output = "";
     }
