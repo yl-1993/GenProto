@@ -5,6 +5,7 @@ function onSelectionChanged(e) {
   'use strict';
   var node = e.diagram.selection.first();
   if (node instanceof go.Node) {
+    showRelationship(node);
     updateProperties(node.data);
   } else if (node instanceof go.Link) {
     updateLinkProperties(node.data);
@@ -90,6 +91,61 @@ function modifyKeyForNodeData(data){
     }
     return false;
   }
+}
+
+function showRelationship(node) {
+  'use strict'
+  if (node == null){
+    return;
+  }
+  var intoLinks = node.findLinksInto();
+  var outofLinks = node.findLinksOutOf();
+  var i = 0;
+  while(intoLinks.next()) {
+    if (i == 0) {
+      document.getElementById('bottomLayers').innerHTML = intoLinks.value.data.from;
+    } else {
+      document.getElementById('bottomLayers').innerHTML += ", "+intoLinks.value.data.from;
+    }
+    i++;
+  }
+  if (i == 0) {
+    document.getElementById('bottomLayers').innerHTML = "";
+  } else {
+    i = 0;
+  }
+  while(outofLinks.next()) {
+    if (i == 0) {
+      document.getElementById('topLayers').innerHTML = outofLinks.value.data.to;
+    } else {
+      document.getElementById('topLayers').innerHTML += ", "+outofLinks.value.data.to;
+    }
+    i++;
+  }
+  if (i == 0) {
+    document.getElementById('topLayers').innerHTML = "";
+  } else {
+    i = 0;
+  }
+// console.log(outofLinks.hasNext())
+//   console.log(intoLinks.first().data.from)
+//   console.log(outofLinks.first().data.to)
+  // if (outofLinks.hasNext()){
+  //   outofLinks.next();
+  //   console.log(outofLinks.hasNext().data.to)
+  // }
+//  console.log(intoLinks[0].data.from)
+//  console.log(outofLinks[0].to)
+  // if (outofLinks.from) {
+  //   document.getElementById('bottomLayers').innerHTML = data.from;   
+  // } else {
+  //   document.getElementById('bottomLayers').innerHTML = "";
+  // }
+  // if (intoLinks.to) {
+  //   document.getElementById('topLayers').innerHTML = data.to;
+  // } else {
+  //   document.getElementById('topLayers').innerHTML = "";
+  // }
 }
 
 // Update the HTML elements for editing the properties of the currently selected node, if any
