@@ -8,7 +8,7 @@ function onSelectionChanged(e) {
     updateProperties(node.data);
   } else if (node instanceof go.Link) {
     updateLinkProperties(node.data);
-    console.log(node.data);
+    //console.log(node.data);
   } else {
     updateProperties(null);
   }
@@ -23,7 +23,7 @@ function onTextEdited(e) {
   if (node instanceof go.Node) {
     updateProperties(node.data);
   } else if (node instanceof go.Link){
-    console.log(node.data);
+    //console.log(node.data);
     updateLinkProperties(node.data);
   } else {
     updateProperties(null);
@@ -84,8 +84,10 @@ function modifyKeyForNodeData(data){
     myDiagram.model.setKeyForNodeData(data,data.name);
     return true;
   } else { // new name has been used
-    myDiagram.model.setDataProperty(data, "name", data.key);
-    showErrorToast("Cannot modify layer's name: Layer with the same name has already existed!");
+    if (!data.json.include) { 
+      myDiagram.model.setDataProperty(data, "name", data.key);
+      showErrorToast("Cannot modify layer's name: Layer with the same name has already existed!");
+    }
     return false;
   }
 }
@@ -220,6 +222,31 @@ function changeBlobStatus(linkDataArray, isBlobDisplay) {
   var i;
   for (i = 0; i < linkDataNum; ++i) {
     linkDataArray[i].visible = isBlobDisplay;
+  }
+  return linkDataArray;
+}
+
+function changeNumoutputsStatus(linkDataArray, isNumoutDisplay) {
+  var linkDataNum = linkDataArray.length;
+  var i;
+  var fromNode;
+  var num_output; 
+  for (i = 0; i < linkDataNum; ++i) {
+    fromNode = myDiagram.model.findNodeDataForKey(linkDataArray[i].from);
+    if (fromNode && isNumoutDisplay) {
+      if (fromNode.json.convolution_param) {
+        num_output = fromNode.json.convolution_param.num_output;
+      } else if (fromNode.json.inner_product_param) {
+        num_output = fromNode.json.inner_product_param.num_output;
+      } else {
+        linkDataArray[i].num_output = "";
+        continue;
+      }
+      linkDataArray[i].num_output = num_output;
+      console.log(linkDataArray[i])
+    } else {
+      linkDataArray[i].num_output = "";
+    }
   }
   return linkDataArray;
 }

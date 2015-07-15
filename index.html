@@ -12,6 +12,7 @@
 <script id="code">
   var lastStroked = null;  // this remembers the last highlit Shape
   var isBlobDisplay = true;
+  var isNumoutDisplay = true;
 </script>
 
 
@@ -55,6 +56,9 @@
     _model = document.getElementById("mySavedModel").value;
     myDiagram.model = go.Model.fromJson(_model);
     document.getElementById("prototxt").value = save_prototxt(eval('['+_model+']'));
+    // show num output
+    isNumoutDisplay = false;
+    changeNumoutDisplay();
     //gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
     //compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
   }
@@ -92,6 +96,19 @@
       document.getElementById('blob_display_btn').innerHTML = 'ShowBlob';
     }
     _model["linkDataArray"] = changeBlobStatus(_model["linkDataArray"], isBlobDisplay);
+    myDiagram.model = _model; // reload the UI
+  }
+
+  function changeNumoutDisplay() {
+    var _saveModel = document.getElementById("mySavedModel").value;
+    var _model = go.Model.fromJson(_saveModel);
+    isNumoutDisplay = !isNumoutDisplay;
+    if (isNumoutDisplay) { // show blob
+      document.getElementById('numout_display_btn').innerHTML = 'HideNumOutput';
+    } else { // hide blob
+      document.getElementById('numout_display_btn').innerHTML = 'ShowNumOutput';
+    }
+    _model["linkDataArray"] = changeNumoutputsStatus(_model["linkDataArray"], isNumoutDisplay);
     myDiagram.model = _model; // reload the UI
   }
 
@@ -261,6 +278,7 @@
           </tr>
           <tr>
             <td><button id="blob_display_btn" onclick="changeBlobDisplay()" style="display:block;">HideBlob</button></td>
+            <td><button id="numout_display_btn" onclick="changeNumoutDisplay()" style="display:block;">HideNumOutput</button></td>
           </tr>
         </table>
         <div style="margin-top: 10px;">
