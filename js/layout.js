@@ -122,7 +122,8 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
         if (top_list.length >= 2) {
           _node_data_array[j]["loc"] = get_loc(start_x, start_y - i * delta_y);        
         } else {
-          _node_data_array[j]["loc"] = get_loc(start_x + i * delta_x, start_y); 
+          //_node_data_array[j]["loc"] = get_loc(start_x + i * delta_x, start_y); 
+          _node_data_array[j]["loc"] = get_loc(start_x, start_y - i * delta_y); 
         }
         break;
       }
@@ -221,8 +222,18 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
            _link_data_array[i]["to"] == top_list[k] &&
            _edge_from[bottom_list[j]].contains(top_list[k])) {
           if (k == 0) {
-            _link_data_array[i]["fromPort"] = "L";
-            _link_data_array[i]["toPort"] = "L"; 
+            if (top_list.length == 1) {
+              if (j%2 == 0){
+                _link_data_array[i]["fromPort"] = "R";
+                _link_data_array[i]["toPort"] = "R"; 
+              } else {
+                _link_data_array[i]["fromPort"] = "L";
+                _link_data_array[i]["toPort"] = "L"; 
+              } 
+            } else {
+              _link_data_array[i]["fromPort"] = "L";
+              _link_data_array[i]["toPort"] = "L";  
+            }
           } else if (k == top_list.length - 1) {
             _link_data_array[i]["fromPort"] = "R";
             _link_data_array[i]["toPort"] = "R"; 
