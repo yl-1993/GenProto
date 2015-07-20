@@ -7,7 +7,206 @@ function compute_attr_info(_node_data_array, _link_data_array) {
   //document.getElementById("data_memory").innerHTML = compute_data_memory(_node_data_array, _link_data_array);
 }
 
-function compute_model_size(_node_data_array, _link_data_array) {
+function search_obj_for_whc(json) {
+  var wflag = true, hflag = true, cflag = true;
+  var w, h ,c;
+  for (var obj in json) {
+    if (typeof(json[obj]) == "object") {
+      var param = json[obj];
+      for (var key_obj in param){
+        if (param[key_obj]) {
+          if(key_obj == "width") {
+            w = param[obj];
+            wflag = false;
+          } else if (key_obj == "height") {
+            h = param[obj];
+            hflag = false;
+          } else if (key_obj == "channels") {
+            c = param[obj];
+            cflag = false;
+          } else if (key_obj == "channel") {
+            c = param[obj];
+            cflag = false;
+          }
+        }
+      }
+    }
+  }
+  if(wflag) {
+    w = 256;
+  }
+  if(hflag) {
+    h = 256;
+  }
+  if(cflag) {
+    c = 3;
+  }
+  return {
+    "w":w,
+    "h":h,
+    "c":c,
+    "wflag":wflag,
+    "hflag":hflag,
+    "cflag":cflag
+  };  
+}
+
+function check_whc(bottom_list, _node_data_array) {
+  var i, j;
+  var w, h ,c;
+  var wflag, hflag, cflag;
+  var bottom_num = bottom_list.length;
+  var _node_data_num = _node_data_array.length;
+  var res;
+  var msg = "";
+  for (i = 0; i < bottom_num; ++i) {
+    for (j = 0; j < _node_data_num; ++j) {
+      if(_node_data_array[j].key == bottom_list[i]) {
+        // search for w, h ,c
+        res = search_obj_for_whc(_node_data_array[j].json);
+      }
+    }
+  }
+  if(res.wflag) {
+    document.getElementById("input_width").value = res.w;
+    msg += "width ";
+  }
+  if(res.hflag) {
+    document.getElementById("input_height").value = res.h;
+    msg += "height ";
+  }
+  if(res.cflag) {
+    document.getElementById("input_channel").value = res.c;
+    msg += "channel ";
+  }
+  showErrorToast("The default setting is 256x256x3. Please fill in:" + msg);
+  return res;
+}
+
+function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_data_array, _link_data_array) {
+  var res = check_whc(bottom_list, _node_data_array);
+  var cur_bottom = bottom_list;
+  var cur_bottom_nodes = [];
+  var cur_top;
+  var cur_top_nodes;
+  var i, j;
+  var w, h;
+  var model_size = 0;
+  for (i = 0; i < cur_bottom.length; ++i) {
+    var node = myDiagram.model.findNodeDataForKey(cur_bottom[i]);
+    node.stat = {}
+    node.stat.w = res.w;
+    node.stat.h = res.h;
+    node.stat.c = res.c;
+    cur_bottom_nodes.push(node);
+  }
+  while(cur_bottom.length > 0) {
+    cur_top = [];
+    cur_top_nodes = [];
+    // check the image size from different bottoms
+    var w_array = [], h_array = [], c_array = [];
+    var str_name = "";
+    for (i = 0; i < cur_bottom.length; ++i) {
+      w_array.push(cur_bottom_nodes[i].stat.w);
+      h_array.push(cur_bottom_nodes[i].stat.h);
+      c_array.push(cur_bottom_nodes[i].stat.c);
+      str_name += cur_bottom_nodes[i].name + " ";
+    }
+    w_array = w_array.unique();
+    h_array = h_array.unique();
+    if (w_array.length != 1 || h_array.length != 1) {
+      showErrorToast("The image size is not the same! Please check: " + str_name);
+      return 0;
+    } else {
+      w = w_array[0];
+      h = h_array[0];
+    }
+    // get current top
+    for (i = 0; i < cur_bottom.length; ++i) {
+      var top_keys = _edge_from[cur_bottom[i]];
+      if (top_keys) {
+        for (j = 0; j < top_keys.length; ++j) {
+            cur_top.push(top_keys[j]);
+        }
+      }
+    }
+    cur_top = cur_top.unique();
+    // handle current top node
+    for (i = 0; i < cur_top.length; ++i) {
+      var top_node = myDiagram.model.findNodeDataForKey(cur_top[i]);
+      top_node.stat = {};
+      if (top_node.type == "Concat") {
+        top_node.stat.w = w;
+        top_node.stat.h = h;
+        top_node.stat.c = 0;
+        for (k = 0; k < c_array.length; ++k) {
+          top_node.stat.c += c_array[k]; 
+        }
+        top_node.stat.model_size = 0;
+      } else {
+        c_array = c_array.unique();
+        if (c_array.length != 1) {
+          showErrorToast("Channels from bottom nodes are different! Please check: "+str_name);
+          return 0;
+        }
+        c = c_array[0];
+        if (top_node.type == "Convolution") {
+          var num_output = top_node.json.convolution_param.num_output;
+          var kernel_size = top_node.json.convolution_param.kernel_size;
+          var stride = top_node.json.convolution_param.stride || 1;
+          var pad = top_node.json.convolution_param.pad || 0;
+          if (num_output && kernel_size && stride) {
+            top_node.stat.w = (w + 2*pad - kernel_size + 1) / stride;
+            top_node.stat.h = (h + 2*pad - kernel_size + 1) / stride;
+            top_node.stat.c = num_output;
+            top_node.stat.model_size = c*(kernel_size*kernel_size)*num_output;
+          } else {
+            showErrorToast("Some parameters are lost! Please check layer: " + top_node.name);
+            return 0;
+          }
+        } else if (top_node.type == "InnerProduct") {
+          var num_output = top_node.json.inner_product_param.num_output;
+          if (num_output) {
+            top_node.stat.c = num_output;
+            top_node.stat.model_size = (w*h*c)*num_output;
+          } else {
+            showErrorToast("Some parameters are lost! Please check layer: " + top_node.name);
+            return 0;
+          }
+        } else if (top_node.type == "Pooling") {
+          var kernel_size = top_node.json.pooling_param.kernel_size;
+          var stride = top_node.json.pooling_param.stride || 1;
+          var pad = top_node.json.pooling_param.pad || 0;
+          if (kernel_size && stride) {
+            top_node.stat.w = (w + 2*pad - kernel_size + 1) / stride;
+            top_node.stat.h = (h + 2*pad - kernel_size + 1) / stride;
+            top_node.stat.c = c;
+            top_node.stat.model_size = 0;
+          } else {
+            showErrorToast("Some parameters are lost! Please check layer: " + top_node.name);
+            return 0;
+          }
+        } else {
+          top_node.stat.w = w;
+          top_node.stat.h = h;
+          top_node.stat.c = c;
+          top_node.stat.model_size = 0;
+        }
+      }
+
+      model_size += top_node.stat.model_size;
+      console.log(top_node)
+      cur_top_nodes.push(top_node);
+    }
+    // update
+    cur_bottom = cur_top;
+    cur_bottom_nodes = cur_top_nodes;
+    //break;
+  }
+  return model_size;
+}
+
+function compute_model_size_old(_node_data_array, _link_data_array) {
   var _node_data_num = _node_data_array.length;
   var _link_data_num = _link_data_array.length;
   var _map = {};

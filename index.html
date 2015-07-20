@@ -47,7 +47,7 @@
     document.getElementById("mySavedModel").value = _model;
     document.getElementById("prototxt").value = save_prototxt(eval('['+_model+']'));
     //gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
-    //compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
+    compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
     myDiagram.isModified = false;
   }
 
@@ -60,7 +60,7 @@
     isNumoutDisplay = false;
     changeNumoutDisplay();
     //gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
-    //compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
+    compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
   }
   
 
@@ -285,9 +285,12 @@
             <td><button onclick="save_to_image()" style="display:block;">Render as image</button></td>
           </tr>
         </table>
-<!--         <div style="margin-top: 10px;">
-          Model size is about: <b id="model_size">1</b> MB
-        </div> -->
+        <div style="margin-top: 10px;">
+          Input size(w*h*c): <input id="input_width" /> x <input id="input_height" /> x <input id="input_channel" />
+        </div>
+        <div style="margin-top: 10px;">
+          Model size is about: <b id="model_size_mb">0</b> MB (<b id="model_size">0</b> KB)
+        </div>
 <!--         <div style="">
           Memory required for data is: <b id="data_memory">1</b> MB
         </div>

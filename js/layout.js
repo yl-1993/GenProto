@@ -243,6 +243,10 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
     }
   }
 
+  var model_size = compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_data_array, _link_data_array);
+  document.getElementById('model_size').innerHTML = model_size*4;
+  document.getElementById('model_size_mb').innerHTML = model_size*4/1024/1024;
+
   _model["nodeDataArray"] = _node_data_array;
   _model["linkDataArray"] = _link_data_array;
   return _model.toJson();
