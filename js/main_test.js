@@ -21,7 +21,7 @@ function init() {
   // when the document is modified, add a "*" to the title and enable the "Save" button
   myDiagram.addDiagramListener("Modified", function(e) {
     var button = document.getElementById("SaveButton");
-    if (button) button.disabled = !myDiagram.isModified;
+    //if (button) button.disabled = !myDiagram.isModified;
     var idx = document.title.indexOf("*");
     if (myDiagram.isModified) {
       if (idx < 0) document.title += "*";

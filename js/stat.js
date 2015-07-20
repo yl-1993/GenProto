@@ -5,6 +5,67 @@ function get_loc(start_x, start_y) {
 function compute_attr_info(_node_data_array, _link_data_array) {
   //document.getElementById("model_size").innerHTML = compute_model_size(_node_data_array, _link_data_array);
   //document.getElementById("data_memory").innerHTML = compute_data_memory(_node_data_array, _link_data_array);
+  var _node_data_num = _node_data_array.length;
+  var _link_data_num = _link_data_array.length;
+  var _map = {};
+
+  var _edge_to = {};
+  var _edge_from = {};
+  // parse layers
+  for (i = 0; i < _node_data_num; ++i) {
+    var _data = _node_data_array[i];
+    var _layer = {};
+
+    _layer["name"] = _data["name"]
+    _layer["category"] = _data["category"]
+    if (_data.category != 'BLOB') {
+      var param_list = get_param_list(_layers[_data.category]);
+      if (param_list) {
+        var param_num = param_list.length;
+        for (j = 0; j < param_num; ++j) {
+          if (_data[param_list[j]]) {
+            _layer[param_list[j]] = _data[param_list[j]];
+          }
+        }
+      }
+      if (_data["phase"]) {
+        _layer["phase"] = _data["phase"];
+      }
+    }
+    _map[_data["key"]] = _layer;
+  }
+  for (i = 0; i < _link_data_num; ++i) {
+    if (!_edge_to[_link_data_array[i]["to"]]) {
+      _edge_to[_link_data_array[i]["to"]] = [];
+    }
+    if (!_edge_from[_link_data_array[i]["from"]]) {
+      _edge_from[_link_data_array[i]["from"]] = [];
+    }
+    _link_data_array[i]["points"] = [];
+    _link_data_array[i]["fromPort"] = "T";
+    _link_data_array[i]["toPort"] = "B";
+    _edge_to[_link_data_array[i]["to"]].push(_link_data_array[i]["from"]);
+    _edge_from[_link_data_array[i]["from"]].push(_link_data_array[i]["to"]);
+  }
+
+  // console.log(_edge_to);
+  // console.log(_edge_from);
+
+  // select bottom and top
+  var bottom_list = [];
+  var top_list = [];
+  for (var _key in _map) {
+    if (!_edge_to[_key]) {
+      bottom_list.push(_key);
+    }
+    if (!_edge_from[_key]) {
+      top_list.push(_key);
+    }
+  }
+
+  var model_size = compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_data_array, _link_data_array);
+  document.getElementById('model_size').innerHTML = model_size*4;
+  document.getElementById('model_size_mb').innerHTML = model_size*4/1024/1024;
 }
 
 function search_obj_for_whc(json) {
@@ -16,29 +77,29 @@ function search_obj_for_whc(json) {
       for (var key_obj in param){
         if (param[key_obj]) {
           if(key_obj == "width") {
-            w = param[obj];
+            w = param[key_obj];
             wflag = false;
           } else if (key_obj == "height") {
-            h = param[obj];
+            h = param[key_obj];
             hflag = false;
           } else if (key_obj == "channels") {
-            c = param[obj];
+            c = param[key_obj];
             cflag = false;
           } else if (key_obj == "channel") {
-            c = param[obj];
+            c = param[key_obj];
             cflag = false;
           }
         }
       }
     }
   }
-  if(wflag) {
+  if(wflag || !w) {
     w = 256;
   }
-  if(hflag) {
+  if(hflag || !h) {
     h = 256;
   }
-  if(cflag) {
+  if(cflag || !c) {
     c = 3;
   }
   return {
@@ -94,11 +155,16 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
   var model_size = 0;
   for (i = 0; i < cur_bottom.length; ++i) {
     var node = myDiagram.model.findNodeDataForKey(cur_bottom[i]);
-    node.stat = {}
-    node.stat.w = res.w;
-    node.stat.h = res.h;
-    node.stat.c = res.c;
-    cur_bottom_nodes.push(node);
+    if (node) {
+      node.stat = {}
+      node.stat.w = res.w;
+      node.stat.h = res.h;
+      node.stat.c = res.c;
+      cur_bottom_nodes.push(node);
+    } else {
+      showErrorToast("Cannot find node: " + cur_bottom[i]);
+      return 0;
+    }
   }
   while(cur_bottom.length > 0) {
     cur_top = [];
@@ -145,11 +211,13 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
         top_node.stat.model_size = 0;
       } else {
         c_array = c_array.unique();
+        console.log(c_array)
         if (c_array.length != 1) {
           showErrorToast("Channels from bottom nodes are different! Please check: "+str_name);
           return 0;
         }
         c = c_array[0];
+        //console.log(c)
         if (top_node.type == "Convolution") {
           var num_output = top_node.json.convolution_param.num_output;
           var kernel_size = top_node.json.convolution_param.kernel_size;
@@ -167,6 +235,8 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
         } else if (top_node.type == "InnerProduct") {
           var num_output = top_node.json.inner_product_param.num_output;
           if (num_output) {
+            top_node.stat.w = w;
+            top_node.stat.h = h;
             top_node.stat.c = num_output;
             top_node.stat.model_size = (w*h*c)*num_output;
           } else {
@@ -178,8 +248,8 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
           var stride = top_node.json.pooling_param.stride || 1;
           var pad = top_node.json.pooling_param.pad || 0;
           if (kernel_size && stride) {
-            top_node.stat.w = (w + 2*pad - kernel_size + 1) / stride;
-            top_node.stat.h = (h + 2*pad - kernel_size + 1) / stride;
+            top_node.stat.w = (w + 2*pad - kernel_size) / stride + 1;
+            top_node.stat.h = (h + 2*pad - kernel_size) / stride + 1;
             top_node.stat.c = c;
             top_node.stat.model_size = 0;
           } else {
@@ -194,8 +264,11 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
         }
       }
 
-      model_size += top_node.stat.model_size;
-      console.log(top_node)
+      if (!top_list.contains(top_node.name)) {
+        model_size += top_node.stat.model_size;
+      }
+      //console.log(top_node.stat.model_size)
+      //console.log(top_node)
       cur_top_nodes.push(top_node);
     }
     // update
