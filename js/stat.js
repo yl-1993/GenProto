@@ -211,7 +211,6 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
         top_node.stat.model_size = 0;
       } else {
         c_array = c_array.unique();
-        console.log(c_array)
         if (c_array.length != 1) {
           showErrorToast("Channels from bottom nodes are different! Please check: "+str_name);
           return 0;

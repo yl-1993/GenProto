@@ -97,6 +97,10 @@
     }
     _model["linkDataArray"] = changeBlobStatus(_model["linkDataArray"], isBlobDisplay);
     myDiagram.model = _model; // reload the UI
+    //save
+    _model = myDiagram.model.toJson();
+    _model = prettifyJSONString(_model);
+    document.getElementById("mySavedModel").value = _model;
   }
 
   function changeNumoutDisplay() {
@@ -110,6 +114,10 @@
     }
     _model["linkDataArray"] = changeNumoutputsStatus(_model["linkDataArray"], isNumoutDisplay);
     myDiagram.model = _model; // reload the UI
+    //save
+    _model = myDiagram.model.toJson();
+    _model = prettifyJSONString(_model);
+    document.getElementById("mySavedModel").value = _model;
   }
 
   // add an SVG rendering of the diagram at the end of this page

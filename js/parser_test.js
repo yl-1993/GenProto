@@ -133,6 +133,9 @@ var generate_link = function(nodes) {
     if (nodes[i].type == 'ReLU' && nodes[i].top == nodes[i].bottom) {
       continue;
     }
+    if (nodes[i].type == 'Dropout' && nodes[i].top == nodes[i].bottom) {
+      continue;
+    }    
     if (nodes[i].top && (nodes[i].top instanceof Array)) {
       // 2 or more tops
       for (j = 0; j < nodes[i].top.length; j += 1) {
@@ -163,6 +166,9 @@ var generate_link = function(nodes) {
     if (nodes[i].type == 'ReLU' && nodes[i].top == nodes[i].bottom) {
       continue;
     }
+    if (nodes[i].type == 'Dropout' && nodes[i].top == nodes[i].bottom) {
+      continue;
+    }
     if (nodes[i].bottom && (nodes[i].bottom instanceof Array)) {
       for (j = 0; j < nodes[i].bottom.length; j += 1) {
         if (blobs[nodes[i].bottom[j]]) {
@@ -181,6 +187,11 @@ var generate_link = function(nodes) {
         blobs[nodes[i].top].text = "ReLU";
       }
     }
+    if (nodes[i].type == 'Dropout' && nodes[i].top == nodes[i].bottom) {
+      if (blobs[nodes[i].top]) {
+        blobs[nodes[i].top].text = "Dropout";
+      }
+    }
   }
   var links = [];
   for (var key in blobs) {
@@ -195,10 +206,10 @@ var generate_link = function(nodes) {
           fromPort: 'T',
           toPort: 'B'
         };
-        // if (blob.text) {
-        //   newLink.text = blob.text;
-        //   newLink.visible = true;
-        // }
+        if (blob.text) {
+          newLink.text = blob.text;
+          //newLink.visible = true;
+        }
         links.push(newLink);
       }
     }
@@ -249,6 +260,12 @@ var removeReluLayer = function(nodes, links) {
     if (nodes[i].type == 'ReLU' && nodes[i].top == nodes[i].bottom) {
       if(link_hash[nodes[i].top]){
         link_hash[nodes[i].top].relu_data = nodes[i].json;
+      }
+      continue;
+    }
+    if (nodes[i].type == 'Dropout' && nodes[i].top == nodes[i].bottom) {
+      if(link_hash[nodes[i].top]){
+        link_hash[nodes[i].top].dropout_data = nodes[i].json;
       }
       continue;
     }

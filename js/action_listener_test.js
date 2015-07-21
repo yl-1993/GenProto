@@ -7,10 +7,10 @@ function onSelectionChanged(e) {
   if (node instanceof go.Node) {
     showRelationship(node);
     updateProperties(node.data);
-    console.log(node.data);
+    //console.log(node.data);
   } else if (node instanceof go.Link) {
     updateLinkProperties(node.data);
-    //console.log(node.data);
+    console.log(node.data);
   } else {
     updateProperties(null);
   }
@@ -314,5 +314,6 @@ function changeNumoutputsStatus(linkDataArray, isNumoutDisplay) {
       linkDataArray[i].num_output = "";
     }
   }
+  //linkDataArray = changeBlobStatus(linkDataArray, false)
   return linkDataArray;
 }

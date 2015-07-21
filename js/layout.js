@@ -37,7 +37,7 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
   var start_x = -45;
   var start_y = 325;
   var delta_x = 200;
-  var delta_y = -100;
+  var delta_y = -130;
   var _struct_list = [];
   var i, j, k;
   // parse layers

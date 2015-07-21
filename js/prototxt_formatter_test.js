@@ -79,6 +79,9 @@ function save_prototxt(_model) {
     if(_link_data_array[i].text == "ReLU"){
       prototxt += json2prototxt_layer(_link_data_array[i].relu_data, false);
     }
+    if(_link_data_array[i].text == "Dropout"){
+      prototxt += json2prototxt_layer(_link_data_array[i].dropout_data, false);
+    }
   }
   return prototxt;
 }

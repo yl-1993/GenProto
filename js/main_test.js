@@ -324,11 +324,15 @@ function init() {
           stroke: "#333333", 
         },
         new go.Binding("text", "num_output").makeTwoWay()),
-      // $(go.TextBlock, "to",
-      //   { segmentIndex: -1, 
-      //     segmentOffset: new go.Point(NaN, NaN),
-      //     segmentOrientation: go.Link.OrientUpright },
-      //     new go.Binding("text", "num_output").makeTwoWay()),
+      $(go.TextBlock, //"to",
+        { 
+          segmentIndex: -1, 
+          segmentOffset: new go.Point(NaN, NaN),
+          segmentOrientation: go.Link.OrientUpright,
+          font: "8pt helvetica, arial, sans-serif",
+          stroke: "#333333", 
+        },
+        new go.Binding("text", "text").makeTwoWay()),
       $(go.Panel, "Auto", // the link label, normally not visible
         {
           visible: false,
