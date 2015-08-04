@@ -71,7 +71,9 @@ function init() {
       toSpot: spot, // declare where links may connect at this port
       fromLinkable: output,
       toLinkable: input, // declare whether the user may draw links to/from here
-      cursor: "pointer" // show a different cursor to indicate potential link point
+      cursor: "pointer", // show a different cursor to indicate potential link point
+      fromLinkableDuplicates: true, 
+      toLinkableDuplicates: true
     });
   }
 
@@ -229,6 +231,8 @@ function init() {
       makePort("T", go.Spot.Top, true, false),
       makePort("L", go.Spot.Left, true, true),
       makePort("R", go.Spot.Right, true, true),
+      makePort("BL", go.Spot.BottomLeft, false, true),
+      makePort("BR", go.Spot.BottomRight, false, true),
       makePort("B", go.Spot.Bottom, false, true)
     ));
 
@@ -258,6 +262,8 @@ function init() {
       makePort("T", go.Spot.Top, true, false),
       makePort("L", go.Spot.Left, true, true),
       makePort("R", go.Spot.Right, true, true),
+      makePort("BL", go.Spot.BottomLeft, false, true),
+      makePort("BR", go.Spot.BottomRight, false, true),
       makePort("B", go.Spot.Bottom, false, true)
     ));
 
@@ -287,6 +293,8 @@ function init() {
       makePort("T", go.Spot.Top, true, false),
       makePort("L", go.Spot.Left, true, true),
       makePort("R", go.Spot.Right, true, true),
+      makePort("BL", go.Spot.BottomLeft, false, true),
+      makePort("BR", go.Spot.BottomRight, false, true),
       makePort("B", go.Spot.Bottom, false, true)
     ));
 
@@ -295,14 +303,18 @@ function init() {
     $(go.Link, // the whole link panel
       {
         routing: go.Link.AvoidsNodes,
+        //curve: go.Link.Bezier,
         curve: go.Link.JumpOver,
+        //adjusting: go.Link.Stretch,
         corner: 5,
-        toShortLength: 4,
+        //toShortLength: 4,
         relinkableFrom: true,
         relinkableTo: true,
+        resegmentable: true,
         reshapable: true
       },
       new go.Binding("points").makeTwoWay(),
+      //new go.Binding("curviness", "curviness"),
       $(go.Shape, // the link path shape
         {
           isPanelMain: true,
