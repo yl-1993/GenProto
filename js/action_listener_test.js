@@ -7,7 +7,7 @@ function onSelectionChanged(e) {
   if (node instanceof go.Node) {
     showRelationship(node);
     updateProperties(node.data);
-    //console.log(node.data);
+    console.log(node.data);
   } else if (node instanceof go.Link) {
     updateLinkProperties(node.data);
     console.log(node.data);
@@ -185,12 +185,17 @@ function updateProperties(data) {
     }
     data.json.top = data.name;
   } else {
+    console.log('here')
     // modify the node's name
-    if (!modifyKeyForNodeData(data)) {
-      return;
+    if (data.json.include.phase != "TRAIN" && data.json.include.phase != "TEST") {
+      if (!modifyKeyForNodeData(data)) {
+        return;
+      }
+      data.json.name = data.name; 
+      data.json.top = data.name;
+    } else {
+      // key is: name + phase
     }
-    data.json.name = data.name; 
-    data.json.top = data.name;
   }
 
   var resizeTextarea = function(element) {

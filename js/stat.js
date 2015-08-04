@@ -120,6 +120,19 @@ function check_whc(bottom_list, _node_data_array) {
   var _node_data_num = _node_data_array.length;
   var res;
   var msg = "";
+
+  // check the input width, height and channel. This setting has higher priority.
+  if (document.getElementById("input_width").value && 
+      document.getElementById("input_height").value &&
+      document.getElementById("input_channel").value) {
+    return {
+      "w":document.getElementById("input_width").value,
+      "h":document.getElementById("input_height").value,
+      "c":document.getElementById("input_channel").value
+    };      
+  }
+
+  // if the input box is empty
   for (i = 0; i < bottom_num; ++i) {
     for (j = 0; j < _node_data_num; ++j) {
       if(_node_data_array[j].key == bottom_list[i]) {
@@ -128,19 +141,21 @@ function check_whc(bottom_list, _node_data_array) {
       }
     }
   }
+  document.getElementById("input_width").value = res.w;
+  document.getElementById("input_height").value = res.h;
+  document.getElementById("input_channel").value = res.c;
   if(res.wflag) {
-    document.getElementById("input_width").value = res.w;
     msg += "width ";
   }
   if(res.hflag) {
-    document.getElementById("input_height").value = res.h;
     msg += "height ";
   }
   if(res.cflag) {
-    document.getElementById("input_channel").value = res.c;
-    msg += "channel ";
+    msg += "channel";
   }
-  showErrorToast("The default setting is 256x256x3. Please fill in:" + msg);
+  if (msg != "") {
+    showErrorToast("The default setting is 256x256x3. Please fill in:" + msg);
+  }
   return res;
 }
 

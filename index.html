@@ -62,6 +62,10 @@
     //gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
     compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
   }
+
+  function recompute_model_size() {
+    compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
+  }
   
 
   function showLoadingDiv() {            
@@ -294,7 +298,10 @@
           </tr>
         </table>
         <div style="margin-top: 10px;">
-          Input size(w*h*c): <input id="input_width" /> x <input id="input_height" /> x <input id="input_channel" />
+          Input size(w*h*c): 
+          <input id="input_width" onchange="recompute_model_size();"/> x 
+          <input id="input_height" onchange="recompute_model_size();"/> x 
+          <input id="input_channel" onchange="recompute_model_size();"/>
         </div>
         <div style="margin-top: 10px;">
           Model size is about: <b id="model_size_mb">0</b> MB (<b id="model_size">0</b> KB)
