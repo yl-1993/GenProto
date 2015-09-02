@@ -24,6 +24,7 @@ var layer2arr = function(str) {
   var i = 0;
   for (i = 0; i < arr.length; i += 1) {
     arr[i] = str_sp_remove(arr[i]);
+    //console.log(arr[i])
     if (arr[i].match(/^[^:]*{.*$/)) {
       arr0.push(arr[i].split("{")[0] + "{");
 
@@ -106,8 +107,53 @@ var line2kv = function(line) {
   return kv;
 };
 
+var format_net = function(net) {
+  // add \n before 'layer' 
+  var pattern1 = "layer";
+  var pattern2 = "{";
+  var net1 = "", net2 = "";
+  var start_pos = 0, end_pos = 0, tmp_pos = 0;
+  var i = 0;
+  while(true) {
+    end_pos = net.indexOf(pattern1, start_pos);
+    if (end_pos == -1) {
+      net1 += net.substr(start_pos, net.length - start_pos);
+      break;
+    }
+    tmp_pos = end_pos - 1;
+    //while(net[tmp_pos] == " ") tmp_pos--;
+    if (net[tmp_pos] != "\n" && (net[tmp_pos] == " " || net[tmp_pos] == "}")) {
+      net1 += net.substr(start_pos, tmp_pos - start_pos + 1) + "\n" + pattern1;
+    } else {
+      net1 += net.substr(start_pos, tmp_pos - start_pos + 1) + pattern1;      
+    }
+    start_pos = end_pos + pattern1.length;
+  }
+  // remove all '\n' before '{'
+  start_pos = 0;
+  while(true) {
+    end_pos = net1.indexOf(pattern2, start_pos);
+    if (end_pos == -1) {
+      net2 += net1.substr(start_pos, net1.length - start_pos);
+      break;
+    }
+    tmp_pos = end_pos - 1;
+    while(net1[tmp_pos] == " ") tmp_pos--;
+    
+    if (net1[tmp_pos] != "\n") {
+      net2 += net1.substr(start_pos, tmp_pos - start_pos + 1) + pattern2;
+    } else {
+      while(net1[tmp_pos] == "\n" || net1[tmp_pos] == " ") tmp_pos--;
+      net2 += net1.substr(start_pos, tmp_pos - start_pos + 1) + pattern2;    
+    }
+    start_pos = end_pos + pattern2.length;
+  }
+  return net2;
+};
+
 var layer_split = function(net) {
   'use strict';
+  net = format_net(net);
   var arr = net.split('\n');
   var res = [];
   var s = [];
@@ -115,6 +161,9 @@ var layer_split = function(net) {
   for (i = 0; i < arr.length; i += 1) {
     if (arr[i].match(/layer\s*\{/)) {
       s.push(i);
+    } else if (arr[i].match(/layers\s*\{/) || arr[i].match(/layers\s*/)) {
+      //showErrorToast('Please upgrade your prototxt! The layer should start with "layer".');
+      return [];
     }
   }
   s.push(arr.length);

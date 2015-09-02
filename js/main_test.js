@@ -451,6 +451,10 @@ function init() {
             type: "Convolution",
             category: "CONVOLUTION"
           }, {
+            name: "ConvolutionData",
+            type: "ConvolutionData",
+            category: "CONVOLUTION"
+          }, {
             name: "InnerProduct",
             type: "InnerProduct",
             category: "INNERPRODUCT"

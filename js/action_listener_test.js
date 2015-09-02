@@ -78,6 +78,7 @@ function setKeyForNodeData(data){
   }
 }
 
+
 function modifyKeyForNodeData(data){
   // set key by calling setKeyForNodeData
   if (myDiagram.model.findNodeDataForKey(data.name) == data) { // new name == old name
@@ -93,6 +94,7 @@ function modifyKeyForNodeData(data){
     return false;
   }
 }
+
 
 function showRelationship(node) {
   'use strict'
@@ -185,17 +187,18 @@ function updateProperties(data) {
     }
     data.json.top = data.name;
   } else {
-    console.log('here')
+    //console.log('here')
     // modify the node's name
-    if (data.json.include.phase != "TRAIN" && data.json.include.phase != "TEST") {
+    //if (data.json.include.phase != "TRAIN" && data.json.include.phase != "TEST") {
       if (!modifyKeyForNodeData(data)) {
         return;
       }
       data.json.name = data.name; 
       data.json.top = data.name;
-    } else {
+    //} else {
       // key is: name + phase
-    }
+
+    //}
   }
 
   var resizeTextarea = function(element) {
