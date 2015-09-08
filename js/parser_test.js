@@ -191,6 +191,7 @@ var generate_link = function(nodes) {
         if (!blobs[nodes[i].top[j]]) {
           blobs[nodes[i].top[j]] = {
             "blob_name" : nodes[i].top[j],
+            "old_name" : nodes[i].top[j],
             "from": [nodes[i].key],
             "to": []
           };
@@ -202,6 +203,7 @@ var generate_link = function(nodes) {
       if (!blobs[nodes[i].top]) {
         blobs[nodes[i].top] = {
           "blob_name" : nodes[i].top,
+          "old_name" : nodes[i].top,
           "from": [nodes[i].key],
           "to": []
         };
@@ -249,6 +251,7 @@ var generate_link = function(nodes) {
       for (j = 0; j < blob.from.length; j += 1) {
         var newLink = {
           blob_name: blob.blob_name,
+          old_name: blob.old_name,
           from: blob.from[j],
           to: blob.to[i],
           visible: true,

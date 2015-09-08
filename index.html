@@ -76,11 +76,11 @@
   }
   function gen_model() {
     showLoadingDiv();
-    var worker =new Worker("./js/parser_test.js"); //创建一个Worker对象并向它传递将在新线程中执行的脚本的URL
+    var worker =new Worker("./js/parser_test.js"); 
     var data = {};
     data.prototxt = document.getElementById("prototxt").value;
-    worker.postMessage(data);              //向worker发送数据
-    worker.onmessage =function(evt){      //接收worker传过来的数据函数
+    worker.postMessage(data);              
+    worker.onmessage =function(evt){      
       var _model = go.Model.fromJson(evt.data);
       document.getElementById("mySavedModel").value = gen_loc_from_layers(_model["nodeDataArray"], 
         _model["linkDataArray"], _model);
@@ -362,37 +362,457 @@
     height: 500px;
   }
   </style>
-  <div class="text-bottom" style="display:none">
+  <div class="text-bottom" style="display:block">
     <div class="panel">
       <textarea id="mySavedModel">
-{ "class": "go.GraphLinksModel",
+{
+  "class": "go.GraphLinksModel",
   "linkFromPortIdProperty": "fromPort",
   "linkToPortIdProperty": "toPort",
-  "nodeDataArray": [ 
-{"json":{"name":"data", "type":"Data", "top":[ "data","label" ], "include":{"phase":"TRAIN"}, "transform_param":{"mirror":true, "crop_size":224, "mean_value":[ 104,117,123 ]}, "data_param":{"source":"examples/imagenet/ilsvrc12_train_lmdb", "batch_size":32, "backend":"LMDB"}}, "name":"data", "top":[ "data","label" ], "type":"Data", "category":"DATA", "key":"data_TRAIN", "loc":"-45 325"},
-{"json":{"name":"data", "type":"Data", "top":[ "data","label" ], "include":{"phase":"TEST"}, "transform_param":{"mirror":false, "crop_size":224, "mean_value":[ 104,117,123 ]}, "data_param":{"source":"examples/imagenet/ilsvrc12_val_lmdb", "batch_size":50, "backend":"LMDB"}}, "name":"data", "top":[ "data","label" ], "type":"Data", "category":"DATA", "key":"data_TEST", "loc":"155 325"},
-{"json":{"name":"conv1/7x7_s2", "type":"Convolution", "bottom":"data", "top":"conv1/7x7_s2", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":64, "pad":3, "kernel_size":7, "stride":2, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"conv1/7x7_s2", "top":"conv1/7x7_s2", "bottom":"data", "type":"Convolution", "category":"CONVOLUTION", "key":"conv1/7x7_s2", "loc":"-45 225"},
-{"json":{"name":"pool1/3x3_s2", "type":"Pooling", "bottom":"conv1/7x7_s2", "top":"pool1/3x3_s2", "pooling_param":{"pool":"MAX", "kernel_size":3, "stride":2}}, "name":"pool1/3x3_s2", "top":"pool1/3x3_s2", "bottom":"conv1/7x7_s2", "type":"Pooling", "category":"POOLING", "key":"pool1/3x3_s2", "loc":"-45 125"},
-{"json":{"name":"pool1/norm1", "type":"LRN", "bottom":"pool1/3x3_s2", "top":"pool1/norm1", "lrn_param":{"local_size":5, "alpha":0.0001, "beta":0.75}}, "name":"pool1/norm1", "top":"pool1/norm1", "bottom":"pool1/3x3_s2", "type":"LRN", "category":"OTHERS", "key":"pool1/norm1", "loc":"-45 25"},
-{"json":{"name":"conv2/3x3_reduce", "type":"Convolution", "bottom":"pool1/norm1", "top":"conv2/3x3_reduce", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":64, "kernel_size":1, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"conv2/3x3_reduce", "top":"conv2/3x3_reduce", "bottom":"pool1/norm1", "type":"Convolution", "category":"CONVOLUTION", "key":"conv2/3x3_reduce", "loc":"-45 -75"},
-{"json":{"name":"conv2/3x3", "type":"Convolution", "bottom":"conv2/3x3_reduce", "top":"conv2/3x3", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":192, "pad":1, "kernel_size":3, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"conv2/3x3", "top":"conv2/3x3", "bottom":"conv2/3x3_reduce", "type":"Convolution", "category":"CONVOLUTION", "key":"conv2/3x3", "loc":"-45 -175"},
-{"json":{"name":"conv2/norm2", "type":"LRN", "bottom":"conv2/3x3", "top":"conv2/norm2", "lrn_param":{"local_size":5, "alpha":0.0001, "beta":0.75}}, "name":"conv2/norm2", "top":"conv2/norm2", "bottom":"conv2/3x3", "type":"LRN", "category":"OTHERS", "key":"conv2/norm2", "loc":"-45 -275"},
-{"json":{"name":"pool2/3x3_s2", "type":"Pooling", "bottom":"conv2/norm2", "top":"pool2/3x3_s2", "pooling_param":{"pool":"MAX", "kernel_size":3, "stride":2}}, "name":"pool2/3x3_s2", "top":"pool2/3x3_s2", "bottom":"conv2/norm2", "type":"Pooling", "category":"POOLING", "key":"pool2/3x3_s2", "loc":"-45 -375"},
-{"json":{"name":"inception_3a/1x1", "type":"Convolution", "bottom":"pool2/3x3_s2", "top":"inception_3a/1x1", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":64, "kernel_size":1, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"inception_3a/1x1", "top":"inception_3a/1x1", "bottom":"pool2/3x3_s2", "type":"Convolution", "category":"CONVOLUTION", "key":"inception_3a/1x1", "loc":"-145 -575"},
-{"json":{"name":"inception_3a/3x3_reduce", "type":"Convolution", "bottom":"pool2/3x3_s2", "top":"inception_3a/3x3_reduce", "param":[ {"lr_mult":1, "decay_mult":1},{"lr_mult":2, "decay_mult":0} ], "convolution_param":{"num_output":96, "kernel_size":1, "weight_filler":{"type":"xavier"}, "bias_filler":{"type":"constant", "value":0.2}}}, "name":"inception_3a/3x3_reduce", "top":"inception_3a/3x3_reduce", "bottom":"pool2/3x3_s2", "type":"Convolution", "category":"CONVOLUTION", "key":"inception_3a/3x3_reduce", "loc":"55 -575"}
- ],
-  "linkDataArray": [ 
-{"blob_name":"data", "from":"data_TRAIN", "to":"conv1/7x7_s2", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"data", "from":"data_TEST", "to":"conv1/7x7_s2", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"conv1/7x7_s2", "from":"conv1/7x7_s2", "to":"pool1/3x3_s2", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"pool1/3x3_s2", "from":"pool1/3x3_s2", "to":"pool1/norm1", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"pool1/norm1", "from":"pool1/norm1", "to":"conv2/3x3_reduce", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"conv2/3x3_reduce", "from":"conv2/3x3_reduce", "to":"conv2/3x3", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"conv2/3x3", "from":"conv2/3x3", "to":"conv2/norm2", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"conv2/norm2", "from":"conv2/norm2", "to":"pool2/3x3_s2", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"pool2/3x3_s2", "from":"pool2/3x3_s2", "to":"inception_3a/1x1", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]},
-{"blob_name":"pool2/3x3_s2", "from":"pool2/3x3_s2", "to":"inception_3a/3x3_reduce", "visible":true, "fromPort":"T", "toPort":"B", "points":[  ]}
- ]}
+  "nodeDataArray": [
+    {
+      "json": {
+        "name": "data",
+        "type": "Data",
+        "top": [
+          "data",
+          "label"
+        ],
+        "include": {
+          "phase": "TRAIN"
+        },
+        "transform_param": {
+          "mirror": true,
+          "crop_size": 224,
+          "mean_value": [
+            104,
+            117,
+            123
+          ]
+        },
+        "data_param": {
+          "source": "examples/imagenet/ilsvrc12_train_lmdb",
+          "batch_size": 32,
+          "backend": "LMDB"
+        }
+      },
+      "name": "data",
+      "top": [
+        "data",
+        "label"
+      ],
+      "type": "Data",
+      "category": "DATA",
+      "key": "data_TRAIN",
+      "loc": "-45 325"
+    },
+    {
+      "json": {
+        "name": "data",
+        "type": "Data",
+        "top": [
+          "data",
+          "label"
+        ],
+        "include": {
+          "phase": "TEST"
+        },
+        "transform_param": {
+          "crop_size": 224,
+          "mean_value": [
+            104,
+            117,
+            123
+          ]
+        },
+        "data_param": {
+          "source": "examples/imagenet/ilsvrc12_val_lmdb",
+          "batch_size": 50,
+          "backend": "LMDB"
+        }
+      },
+      "name": "data",
+      "top": [
+        "data",
+        "label"
+      ],
+      "type": "Data",
+      "category": "DATA",
+      "key": "data_TEST",
+      "loc": "-45 455"
+    },
+    {
+      "json": {
+        "name": "conv1/7x7_s2",
+        "type": "Convolution",
+        "bottom": "data",
+        "top": "conv1/7x7_s2",
+        "param": [
+          {
+            "lr_mult": 1,
+            "decay_mult": 1
+          },
+          {
+            "lr_mult": 2
+          }
+        ],
+        "convolution_param": {
+          "num_output": 64,
+          "pad": 3,
+          "kernel_size": 7,
+          "stride": 2,
+          "weight_filler": {
+            "type": "xavier"
+          },
+          "bias_filler": {
+            "type": "constant",
+            "value": 0.2
+          }
+        }
+      },
+      "name": "conv1/7x7_s2",
+      "top": "conv1/7x7_s2",
+      "bottom": "data",
+      "type": "Convolution",
+      "category": "CONVOLUTION",
+      "key": "conv1/7x7_s2",
+      "loc": "-45 195"
+    },
+    {
+      "json": {
+        "name": "pool1/3x3_s2",
+        "type": "Pooling",
+        "bottom": "conv1/7x7_s2",
+        "top": "pool1/3x3_s2",
+        "pooling_param": {
+          "pool": "MAX",
+          "kernel_size": 3,
+          "stride": 2
+        }
+      },
+      "name": "pool1/3x3_s2",
+      "top": "pool1/3x3_s2",
+      "bottom": "conv1/7x7_s2",
+      "type": "Pooling",
+      "category": "POOLING",
+      "key": "pool1/3x3_s2",
+      "loc": "-45 65"
+    },
+    {
+      "json": {
+        "name": "pool1/norm1",
+        "type": "LRN",
+        "bottom": "pool1/3x3_s2",
+        "top": "pool1/norm1",
+        "lrn_param": {
+          "local_size": 5,
+          "alpha": 0.0001,
+          "beta": 0.75
+        }
+      },
+      "name": "pool1/norm1",
+      "top": "pool1/norm1",
+      "bottom": "pool1/3x3_s2",
+      "type": "LRN",
+      "category": "OTHERS",
+      "key": "pool1/norm1",
+      "loc": "-45 -65"
+    },
+    {
+      "json": {
+        "name": "conv2/3x3_reduce",
+        "type": "Convolution",
+        "bottom": "pool1/norm1",
+        "top": "conv2/3x3_reduce",
+        "param": [
+          {
+            "lr_mult": 1,
+            "decay_mult": 1
+          },
+          {
+            "lr_mult": 2
+          }
+        ],
+        "convolution_param": {
+          "num_output": 64,
+          "kernel_size": 1,
+          "weight_filler": {
+            "type": "xavier"
+          },
+          "bias_filler": {
+            "type": "constant",
+            "value": 0.2
+          }
+        }
+      },
+      "name": "conv2/3x3_reduce",
+      "top": "conv2/3x3_reduce",
+      "bottom": "pool1/norm1",
+      "type": "Convolution",
+      "category": "CONVOLUTION",
+      "key": "conv2/3x3_reduce",
+      "loc": "-45 -195"
+    },
+    {
+      "json": {
+        "name": "conv2/3x3",
+        "type": "Convolution",
+        "bottom": "conv2/3x3_reduce",
+        "top": "conv2/3x3",
+        "param": [
+          {
+            "lr_mult": 1,
+            "decay_mult": 1
+          },
+          {
+            "lr_mult": 2
+          }
+        ],
+        "convolution_param": {
+          "num_output": 192,
+          "pad": 1,
+          "kernel_size": 3,
+          "weight_filler": {
+            "type": "xavier"
+          },
+          "bias_filler": {
+            "type": "constant",
+            "value": 0.2
+          }
+        }
+      },
+      "name": "conv2/3x3",
+      "top": "conv2/3x3",
+      "bottom": "conv2/3x3_reduce",
+      "type": "Convolution",
+      "category": "CONVOLUTION",
+      "key": "conv2/3x3",
+      "loc": "-45 -325"
+    },
+    {
+      "json": {
+        "name": "conv2/norm2",
+        "type": "LRN",
+        "bottom": "conv2/3x3",
+        "top": "conv2/norm2",
+        "lrn_param": {
+          "local_size": 5,
+          "alpha": 0.0001,
+          "beta": 0.75
+        }
+      },
+      "name": "conv2/norm2",
+      "top": "conv2/norm2",
+      "bottom": "conv2/3x3",
+      "type": "LRN",
+      "category": "OTHERS",
+      "key": "conv2/norm2",
+      "loc": "-45 -455"
+    },
+    {
+      "json": {
+        "name": "pool2/3x3_s2",
+        "type": "Pooling",
+        "bottom": "conv2/norm2",
+        "top": "pool2/3x3_s2",
+        "pooling_param": {
+          "pool": "MAX",
+          "kernel_size": 3,
+          "stride": 2
+        }
+      },
+      "name": "pool2/3x3_s2",
+      "top": "pool2/3x3_s2",
+      "bottom": "conv2/norm2",
+      "type": "Pooling",
+      "category": "POOLING",
+      "key": "pool2/3x3_s2",
+      "loc": "-45 -585"
+    },
+    {
+      "json": {
+        "name": "inception_3a/1x1",
+        "type": "Convolution",
+        "bottom": "pool2/3x3_s2",
+        "top": "inception_3a/1x1",
+        "param": [
+          {
+            "lr_mult": 1,
+            "decay_mult": 1
+          },
+          {
+            "lr_mult": 2
+          }
+        ],
+        "convolution_param": {
+          "num_output": 64,
+          "kernel_size": 1,
+          "weight_filler": {
+            "type": "xavier"
+          },
+          "bias_filler": {
+            "type": "constant",
+            "value": 0.2
+          }
+        }
+      },
+      "name": "inception_3a/1x1",
+      "top": "inception_3a/1x1",
+      "bottom": "pool2/3x3_s2",
+      "type": "Convolution",
+      "category": "CONVOLUTION",
+      "key": "inception_3a/1x1",
+      "loc": "-145 -845"
+    },
+    {
+      "json": {
+        "name": "inception_3a/3x3_reduce",
+        "type": "Convolution",
+        "bottom": "pool2/3x3_s2",
+        "top": "inception_3a/3x3_reduce",
+        "param": [
+          {
+            "lr_mult": 1,
+            "decay_mult": 1
+          },
+          {
+            "lr_mult": 2
+          }
+        ],
+        "convolution_param": {
+          "num_output": 96,
+          "kernel_size": 1,
+          "weight_filler": {
+            "type": "xavier"
+          },
+          "bias_filler": {
+            "type": "constant",
+            "value": 0.2
+          }
+        }
+      },
+      "name": "inception_3a/3x3_reduce",
+      "top": "inception_3a/3x3_reduce",
+      "bottom": "pool2/3x3_s2",
+      "type": "Convolution",
+      "category": "CONVOLUTION",
+      "key": "inception_3a/3x3_reduce",
+      "loc": "55 -845"
+    }
+  ],
+  "linkDataArray": [
+    {
+      "blob_name": "data",
+      "old_name": "data",
+      "from": "data_TRAIN",
+      "to": "conv1/7x7_s2",
+      "visible": true,
+      "fromPort": "T",
+      "toPort": "B",
+      "points": [],
+      "num_output": ""
+    },
+    {
+      "blob_name": "data",
+      "old_name": "data",
+      "from": "data_TEST",
+      "to": "conv1/7x7_s2",
+      "visible": true,
+      "fromPort": "T",
+      "toPort": "B",
+      "points": [],
+      "num_output": ""
+    },
+    {
+      "blob_name": "conv1/7x7_s2",
+      "old_name": "conv1/7x7_s2",
+      "from": "conv1/7x7_s2",
+      "to": "pool1/3x3_s2",
+      "visible": true,
+      "fromPort": "T",
+      "toPort": "B",
+      "points": [],
+      "num_output": "64"
+    },
+    {
+      "blob_name": "pool1/3x3_s2",
+      "old_name": "pool1/3x3_s2",
+      "from": "pool1/3x3_s2",
+      "to": "pool1/norm1",
+      "visible": true,
+      "fromPort": "T",
+      "toPort": "B",
+      "points": [],
+      "num_output": ""
+    },
+    {
+      "blob_name": "pool1/norm1",
+      "old_name": "pool1/norm1",
+      "from": "pool1/norm1",
+      "to": "conv2/3x3_reduce",
+      "visible": true,
+      "fromPort": "T",
+      "toPort": "B",
+      "points": [],
+      "num_output": ""
+    },
+    {
+      "blob_name": "conv2/3x3_reduce",
+      "old_name": "conv2/3x3_reduce",
+      "from": "conv2/3x3_reduce",
+      "to": "conv2/3x3",
+      "visible": true,
+      "fromPort": "T",
+      "toPort": "B",
+      "points": [],
+      "num_output": "64"
+    },
+    {
+      "blob_name": "conv2/3x3",
+      "old_name": "conv2/3x3",
+      "from": "conv2/3x3",
+      "to": "conv2/norm2",
+      "visible": true,
+      "fromPort": "T",
+      "toPort": "B",
+      "points": [],
+      "num_output": "192"
+    },
+    {
+      "blob_name": "conv2/norm2",
+      "old_name": "conv2/norm2",
+      "from": "conv2/norm2",
+      "to": "pool2/3x3_s2",
+      "visible": true,
+      "fromPort": "T",
+      "toPort": "B",
+      "points": [],
+      "num_output": ""
+    },
+    {
+      "blob_name": "pool2/3x3_s2",
+      "old_name": "pool2/3x3_s2",
+      "from": "pool2/3x3_s2",
+      "to": "inception_3a/1x1",
+      "visible": true,
+      "fromPort": "T",
+      "toPort": "B",
+      "points": [],
+      "num_output": ""
+    },
+    {
+      "blob_name": "pool2/3x3_s2",
+      "old_name": "pool2/3x3_s2",
+      "from": "pool2/3x3_s2",
+      "to": "inception_3a/3x3_reduce",
+      "visible": true,
+      "fromPort": "T",
+      "toPort": "B",
+      "points": [],
+      "num_output": ""
+    }
+  ]
+}
       </textarea>
     </div>
     <div class="panel">
