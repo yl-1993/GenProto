@@ -36,6 +36,13 @@
 <script src="./js/layout.js"></script>
 <script src="./js/stat.js"></script>
 
+<!-- optimize textarea -->
+<link rel="stylesheet" href="lib/codemirror-5.6/lib/codemirror.css">
+<link rel="stylesheet" href="lib/codemirror-5.6/addon/hint/show-hint.css">
+<script src="lib/codemirror-5.6/lib/codemirror.js"></script>
+<script src="lib/codemirror-5.6/addon/hint/show-hint.js"></script>
+<script src="lib/codemirror-5.6/addon/hint/anyword-hint.js"></script>
+<script src="lib/codemirror-5.6/mode/javascript/javascript.js"></script>
 
 
 <script>
@@ -46,6 +53,7 @@
     _model = prettifyJSONString(_model);
     document.getElementById("mySavedModel").value = _model;
     document.getElementById("prototxt").value = save_prototxt(eval('['+_model+']'));
+    editor_proto.setValue(document.getElementById("prototxt").value);
     //gen_map_size_from_struct(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
     compute_attr_info(myDiagram.model["nodeDataArray"], myDiagram.model["linkDataArray"]);
     myDiagram.isModified = false;
@@ -56,6 +64,7 @@
     _model = document.getElementById("mySavedModel").value;
     myDiagram.model = go.Model.fromJson(_model);
     document.getElementById("prototxt").value = save_prototxt(eval('['+_model+']'));
+    editor_proto.setValue(document.getElementById("prototxt").value);
     // show num output
     isNumoutDisplay = false;
     changeNumoutDisplay();
@@ -214,6 +223,7 @@
            console.log(reader.error);
         } else {
            document.getElementById("prototxt").value = reader.result;
+           editor_proto.setValue(document.getElementById("prototxt").value);
         }
     }
 
@@ -329,7 +339,9 @@
           </div>
         </div> -->
         <div style="margin-top:10px">
-          <div id="json_edit_panel" onchange="saveEditedLayer()">
+          <!-- <div id="json_edit_panel" onchange="saveEditedLayer()"> -->
+          <div id="json_edit_panel">
+            <h4>Layer: </h4>
             <textarea id="layer_edit" style="width: 400px; max-height: 600px;"></textarea>
             <div style="display:none;">
               <button onclick="saveEditedLayer()">save</button>
@@ -362,7 +374,7 @@
     height: 500px;
   }
   </style>
-  <div class="text-bottom" style="display:block">
+  <div class="text-bottom" style="display:none">
     <div class="panel">
       <textarea id="mySavedModel">
 {
@@ -842,5 +854,38 @@
     </div>
   </div>
 </div>
+<style type="text/css">
+.CodeMirror {
+  border: 1px solid #eee;
+  height: auto;
+}
+</style>
+<script>
+  CodeMirror.commands.autocomplete = function(cm) {
+    cm.showHint({hint: CodeMirror.hint.anyword});
+  }
+  var editor_proto = CodeMirror.fromTextArea(document.getElementById("prototxt"), {
+    mode: 'javascript',
+    lineNumbers: true,
+    indentUnit: 2,
+    extraKeys: {"Ctrl-R": "autocomplete"}
+  });
+  var editor_layer = CodeMirror.fromTextArea(document.getElementById("layer_edit"), {
+    lineNumbers: true,
+    viewportMargin: Infinity,
+    extraKeys: {"Ctrl-R": "autocomplete"}
+  });
+  editor_proto.on("change", function(){ 
+    editor_proto.save();
+  });
+  editor_layer.on("change", function(){ 
+    editor_layer.save();
+  });
+  editor_layer.on("blur", function(){ 
+    saveEditedLayer();
+  });
+  editor_proto.setSize("100%", 500);
+</script>
+
 </body>
 </html>

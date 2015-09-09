@@ -10,7 +10,7 @@ function onSelectionChanged(e) {
     console.log(node.data);
   } else if (node instanceof go.Link) {
     //updateLinkProperties(node.data);
-    console.log(node.data)
+    //console.log(node.data)
   } else {
     updateProperties(null);
   }
@@ -212,7 +212,8 @@ function updateProperties(data) {
   var prototxt_to_edit = json2prototxt_layer(data.json);
   var dom = document.getElementById("layer_edit");
   dom.value = prototxt_to_edit;
-  resizeTextarea(dom);
+  editor_layer.setValue(dom.value);
+  // resizeTextarea(dom); // textarea has been hided by CodeMirror
 
 
   return;
@@ -296,6 +297,7 @@ function saveEditedLayer() {
   }
   // maxSelectionCount = 1, so there can only be one Part in this collection
   var text = document.getElementById("layer_edit").value;
+  console.log(text)
   var data = node.data;
 
   var parsed = parseLayer(text);

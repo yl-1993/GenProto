@@ -370,8 +370,7 @@ function gen_model_from_prototxt(prototxt) {
 /** Multi Thread **/
 onmessage =function (evt){
 
-  var d = evt.data;//通过evt.data获得发送来的数据
+  var d = evt.data;
   var res = gen_model_from_prototxt(d.prototxt);
-  postMessage( res );//将获取到的数据发送会主线程
-
+  postMessage( res );
 }
