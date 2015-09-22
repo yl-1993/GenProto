@@ -240,7 +240,11 @@ var generate_link = function(nodes) {
     }
     if (nodes[i].type == 'Dropout' && nodes[i].top == nodes[i].bottom) {
       if (blobs[nodes[i].top]) {
-        blobs[nodes[i].top].text = "Dropout";
+        if (blobs[nodes[i].top].text == "ReLU") {
+          blobs[nodes[i].top].text = "ReLU&Dropout";
+        } else {
+          blobs[nodes[i].top].text = "Dropout";
+        }
       }
     }
   }
@@ -339,7 +343,6 @@ function gen_model_from_prototxt(prototxt) {
   var i;
   for (i = 0; i < layers_arr.length; i += 1) {
     var layer = parseIter(layer2arr(layers_arr[i]), 0)[1];
-
     jsonArray.push(layer);
   }
   nodeDataArray = wrap_model(jsonArray);
