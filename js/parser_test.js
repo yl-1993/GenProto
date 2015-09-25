@@ -151,8 +151,23 @@ var format_net = function(net) {
   return net2;
 };
 
+
+var remove_comment = function(net) {
+  var arr = net.split('\n');
+  var i;
+  var arr_len = arr.length;
+  var net2 = '';
+  for (i = 0; i < arr_len; ++i) {
+    line_arr = arr[i].split('#');
+    net2 += line_arr[0] + '\n';// only keep the content in the first item
+  }
+  return net2;
+}
+
+
 var layer_split = function(net) {
   'use strict';
+  net = remove_comment(net);
   net = format_net(net);
   var arr = net.split('\n');
   var res = [];
