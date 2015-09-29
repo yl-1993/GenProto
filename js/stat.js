@@ -197,11 +197,14 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
     h_array = h_array.unique();
     if (w_array.length != 1 || h_array.length != 1) {
       showErrorToast("The image size is not the same! Please check: " + str_name);
-      return 0;
-    } else {
-      w = w_array[0];
-      h = h_array[0];
-    }
+      //return 0;
+    } 
+    // else {
+    //   w = w_array[0];
+    //   h = h_array[0];
+    // }
+    w = w_array[0];
+    h = h_array[0];
     // get current top
     for (i = 0; i < cur_bottom.length; ++i) {
       var top_keys = _edge_from[cur_bottom[i]];
@@ -228,26 +231,30 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
         c_array = c_array.unique();
         if (c_array.length != 1) {
           showErrorToast("Channels from bottom nodes are different! Please check: "+str_name);
-          return 0;
+          //return 0;
         }
         c = c_array[0];
         //console.log(c)
-        if (top_node.type == "Convolution") {
-          var num_output = top_node.json.convolution_param.num_output;
-          var kernel_size = top_node.json.convolution_param.kernel_size;
-          var stride = top_node.json.convolution_param.stride || 1;
-          var pad = top_node.json.convolution_param.pad || 0;
+        w = parseInt(w);
+        h = parseInt(h);
+        c = parseInt(c);
+        if (top_node.type == "Convolution" || top_node.type == "ConvolutionData") {
+          var num_output = parseInt(top_node.json.convolution_param.num_output);
+          var kernel_size = parseInt(top_node.json.convolution_param.kernel_size);
+          var stride = parseInt(top_node.json.convolution_param.stride || 1);
+          var pad = parseInt(top_node.json.convolution_param.pad || 0);
           if (num_output && kernel_size && stride) {
             top_node.stat.w = (w + 2*pad - kernel_size + 1) / stride;
             top_node.stat.h = (h + 2*pad - kernel_size + 1) / stride;
             top_node.stat.c = num_output;
             top_node.stat.model_size = c*(kernel_size*kernel_size)*num_output;
+            console.log(top_node.stat.model_size);
           } else {
             showErrorToast("Some parameters are lost! Please check layer: " + top_node.name);
             return 0;
           }
-        } else if (top_node.type == "InnerProduct") {
-          var num_output = top_node.json.inner_product_param.num_output;
+        } else if (top_node.type == "InnerProduct" || top_node.type == "InnerProductAll") {
+          var num_output = parseInt(top_node.json.inner_product_param.num_output);
           if (num_output) {
             top_node.stat.w = w;
             top_node.stat.h = h;
@@ -258,9 +265,9 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
             return 0;
           }
         } else if (top_node.type == "Pooling") {
-          var kernel_size = top_node.json.pooling_param.kernel_size;
-          var stride = top_node.json.pooling_param.stride || 1;
-          var pad = top_node.json.pooling_param.pad || 0;
+          var kernel_size = parseInt(top_node.json.pooling_param.kernel_size);
+          var stride = parseInt(top_node.json.pooling_param.stride || 1);
+          var pad = parseInt(top_node.json.pooling_param.pad || 0);
           if (kernel_size && stride) {
             top_node.stat.w = (w + 2*pad - kernel_size) / stride + 1;
             top_node.stat.h = (h + 2*pad - kernel_size) / stride + 1;
@@ -546,4 +553,10 @@ function gen_map_size_from_struct(_node_data_array, _link_data_array) {
   document.getElementById("model_size").innerHTML = model_size;
   document.getElementById("data_memory").innerHTML = 0;
   document.getElementById("calculation").innerHTML = calculation;
+}
+
+
+function dfs(cur_node) {
+  if (!cur_node) return;
+  dfs(cur_node);
 }
