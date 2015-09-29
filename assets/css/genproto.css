@@ -86,7 +86,7 @@ a li.selected { background: #1E90FF; color: white }
   background-color: whitesmoke;
   opacity:0.9;
   position: relative;
-  width: 170px;
+  width: 100px;
   //height: 60px;
   font-family: arial, helvetica, sans-serif;
   font-weight: bold;

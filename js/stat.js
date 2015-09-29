@@ -248,7 +248,6 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
             top_node.stat.h = (h + 2*pad - kernel_size + 1) / stride;
             top_node.stat.c = num_output;
             top_node.stat.model_size = c*(kernel_size*kernel_size)*num_output;
-            console.log(top_node.stat.model_size);
           } else {
             showErrorToast("Some parameters are lost! Please check layer: " + top_node.name);
             return 0;
@@ -556,7 +555,3 @@ function gen_map_size_from_struct(_node_data_array, _link_data_array) {
 }
 
 
-function dfs(cur_node) {
-  if (!cur_node) return;
-  dfs(cur_node);
-}

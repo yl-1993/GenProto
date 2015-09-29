@@ -147,25 +147,24 @@ function init() {
     if (data.category == "CONVOLUTION") {
       var x =
         "<div id='infoBox'>" +
-        "<div>" + data.name;
-      var str_num_output = "";
+        "<div id='infoText'>"; // + data.name;
       var str_kernel_size = " ";
       var str_map_size = " ";
-      if (data.num_output) {
-        str_num_output += ":" + data.num_output;
+      if (data.json.convolution_param.kernel_size) {
+        str_kernel_size += data.json.convolution_param.kernel_size + "*" + data.json.convolution_param.kernel_size +
+          " filters";
       }
-      if (data.kernel_size) {
-        str_kernel_size += data.kernel_size + "*" + data.kernel_size +
-          "filters";
+      if (data.stat.h && data.stat.w) {
+        str_map_size += "@ " + data.stat.h + "*" + data.stat.w + " mapsize";
       }
-      if (data._map_hsize && data._map_wsize) {
-        str_map_size += "@" + data._map_hsize + "*" + data._map_wsize;
-      }
-      x += str_num_output + str_kernel_size + str_map_size + "</div></div>";
+      x += str_kernel_size + str_map_size + "</div></div>";
 
       box.innerHTML = x;
+      box.style.width = box.scrollWidth + 1000 + "px";
       box.style.left = mousePt.x + 300 + "px";
       box.style.top = mousePt.y + 70 + "px";
+      var infoBox = document.getElementById("infoBox");
+      infoBox.style.width = parseInt(infoBox.scrollWidth) - 5 + "px";
     } else {
       box.innerHTML = "";
     }
