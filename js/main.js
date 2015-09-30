@@ -11,7 +11,7 @@ function init() {
         "toolManager.mouseWheelBehavior": go.ToolManager.WheelZoom, // enable mouse wheel event
         "LinkDrawn": showLinkLabel, // this DiagramEvent listener is defined below
         "LinkRelinked": showLinkLabel,
-        "animationManager.duration": 0, // slightly longer than default (600ms) animation
+        "animationManager.duration": 800, // slightly longer than default (600ms) animation
         "ChangedSelection": onSelectionChanged,
         "TextEdited": onTextEdited,
         mouseOver: doMouseOver,
@@ -21,7 +21,7 @@ function init() {
   // when the document is modified, add a "*" to the title and enable the "Save" button
   myDiagram.addDiagramListener("Modified", function(e) {
     var button = document.getElementById("SaveButton");
-    if (button) button.disabled = !myDiagram.isModified;
+    //if (button) button.disabled = !myDiagram.isModified;
     var idx = document.title.indexOf("*");
     if (myDiagram.isModified) {
       if (idx < 0) document.title += "*";
@@ -71,7 +71,9 @@ function init() {
       toSpot: spot, // declare where links may connect at this port
       fromLinkable: output,
       toLinkable: input, // declare whether the user may draw links to/from here
-      cursor: "pointer" // show a different cursor to indicate potential link point
+      cursor: "pointer", // show a different cursor to indicate potential link point
+      fromLinkableDuplicates: true, 
+      toLinkableDuplicates: true
     });
   }
 
@@ -145,25 +147,24 @@ function init() {
     if (data.category == "CONVOLUTION") {
       var x =
         "<div id='infoBox'>" +
-        "<div>" + data.name;
-      var str_num_output = "";
+        "<div id='infoText'>"; // + data.name;
       var str_kernel_size = " ";
       var str_map_size = " ";
-      if (data.num_output) {
-        str_num_output += ":" + data.num_output;
+      if (data.json.convolution_param.kernel_size) {
+        str_kernel_size += data.json.convolution_param.kernel_size + "*" + data.json.convolution_param.kernel_size +
+          " filters";
       }
-      if (data.kernel_size) {
-        str_kernel_size += data.kernel_size + "*" + data.kernel_size +
-          "filters";
+      if (data.stat && data.stat.h && data.stat.w) {
+        str_map_size += "@ " + data.stat.h + "*" + data.stat.w + " mapsize";
       }
-      if (data._map_hsize && data._map_wsize) {
-        str_map_size += "@" + data._map_hsize + "*" + data._map_wsize;
-      }
-      x += str_num_output + str_kernel_size + str_map_size + "</div></div>";
+      x += str_kernel_size + str_map_size + "</div></div>";
 
       box.innerHTML = x;
+      box.style.width = box.scrollWidth + 1000 + "px";
       box.style.left = mousePt.x + 300 + "px";
       box.style.top = mousePt.y + 70 + "px";
+      var infoBox = document.getElementById("infoBox");
+      infoBox.style.width = parseInt(infoBox.scrollWidth) - 5 + "px";
     } else {
       box.innerHTML = "";
     }
@@ -172,7 +173,7 @@ function init() {
 
   // define the Node templates for regular nodes
 
-  var lightText = 'black';
+  var lightText = 'white';
 
   myDiagram.nodeTemplateMap.add("", // the default category
     $(go.Node, "Spot", nodeStyle(),
@@ -181,7 +182,7 @@ function init() {
         $(go.Shape, "RoundedRectangle", {
             name: "SHAPE",
             strokeWidth: 3,
-            fill: "#6797eb",
+            fill: "#4387F6",
             stroke: null
           },
           new go.Binding("figure", "figure")),
@@ -200,17 +201,21 @@ function init() {
       makePort("T", go.Spot.Top, true, false),
       makePort("L", go.Spot.Left, true, true),
       makePort("R", go.Spot.Right, true, true),
+      makePort("BL", go.Spot.BottomLeft, false, true),
+      makePort("BR", go.Spot.BottomRight, false, true),
+      makePort("TL", go.Spot.TopLeft, true, false),
+      makePort("TR", go.Spot.TopRight, true, false),
       makePort("B", go.Spot.Bottom, false, true)
     ));
 
-  myDiagram.nodeTemplateMap.add("BLOB", // the default category
+  myDiagram.nodeTemplateMap.add("LOSS", // the default category
     $(go.Node, "Spot", nodeStyle(),
       // the main object is a Panel that surrounds a TextBlock with a rectangular Shape
       $(go.Panel, "Auto",
-        $(go.Shape, "Ellipse", {
+        $(go.Shape, "RoundedRectangle", {
             name: "SHAPE",
             strokeWidth: 3,
-            fill: "#f0e691",
+            fill: "#F8B205",
             stroke: null
           },
           new go.Binding("figure", "figure")),
@@ -229,6 +234,76 @@ function init() {
       makePort("T", go.Spot.Top, true, false),
       makePort("L", go.Spot.Left, true, true),
       makePort("R", go.Spot.Right, true, true),
+      makePort("BL", go.Spot.BottomLeft, false, true),
+      makePort("BR", go.Spot.BottomRight, false, true),
+      makePort("TL", go.Spot.TopLeft, true, false),
+      makePort("TR", go.Spot.TopRight, true, false),
+      makePort("B", go.Spot.Bottom, false, true)
+    ));
+
+  myDiagram.nodeTemplateMap.add("POOLING", // the default category
+    $(go.Node, "Spot", nodeStyle(),
+      // the main object is a Panel that surrounds a TextBlock with a rectangular Shape
+      $(go.Panel, "Auto",
+        $(go.Shape, "RoundedRectangle", {
+            name: "SHAPE",
+            strokeWidth: 3,
+            fill: "#DC4437",
+            stroke: null
+          },
+          new go.Binding("figure", "figure")),
+        $(go.TextBlock, {
+            font: "bold 11pt Helvetica, Arial, sans-serif",
+            stroke: lightText,
+            margin: 8,
+            maxSize: new go.Size(160, NaN),
+            wrap: go.TextBlock.WrapFit,
+            editable: true,
+            isMultiline: false
+          },
+          new go.Binding("text", "name").makeTwoWay())
+      ),
+      // four named ports, one on each side:
+      makePort("T", go.Spot.Top, true, false),
+      makePort("L", go.Spot.Left, true, true),
+      makePort("R", go.Spot.Right, true, true),
+      makePort("BL", go.Spot.BottomLeft, false, true),
+      makePort("BR", go.Spot.BottomRight, false, true),
+      makePort("TL", go.Spot.TopLeft, true, false),
+      makePort("TR", go.Spot.TopRight, true, false),
+      makePort("B", go.Spot.Bottom, false, true)
+    ));
+
+  myDiagram.nodeTemplateMap.add("OTHERS", // the default category
+    $(go.Node, "Spot", nodeStyle(),
+      // the main object is a Panel that surrounds a TextBlock with a rectangular Shape
+      $(go.Panel, "Auto",
+        $(go.Shape, "RoundedRectangle", {
+            name: "SHAPE",
+            strokeWidth: 3,
+            fill: "#109C55",
+            stroke: null
+          },
+          new go.Binding("figure", "figure")),
+        $(go.TextBlock, {
+            font: "bold 11pt Helvetica, Arial, sans-serif",
+            stroke: lightText,
+            margin: 8,
+            maxSize: new go.Size(160, NaN),
+            wrap: go.TextBlock.WrapFit,
+            editable: true,
+            isMultiline: false
+          },
+          new go.Binding("text", "name").makeTwoWay())
+      ),
+      // four named ports, one on each side:
+      makePort("T", go.Spot.Top, true, false),
+      makePort("L", go.Spot.Left, true, true),
+      makePort("R", go.Spot.Right, true, true),
+      makePort("BL", go.Spot.BottomLeft, false, true),
+      makePort("BR", go.Spot.BottomRight, false, true),
+      makePort("TL", go.Spot.TopLeft, true, false),
+      makePort("TR", go.Spot.TopRight, true, false),
       makePort("B", go.Spot.Bottom, false, true)
     ));
 
@@ -237,14 +312,18 @@ function init() {
     $(go.Link, // the whole link panel
       {
         routing: go.Link.AvoidsNodes,
+        //curve: go.Link.Bezier,
         curve: go.Link.JumpOver,
+        //adjusting: go.Link.Stretch,
         corner: 5,
-        toShortLength: 4,
+        //toShortLength: 4,
         relinkableFrom: true,
         relinkableTo: true,
+        resegmentable: true,
         reshapable: true
       },
       new go.Binding("points").makeTwoWay(),
+      //new go.Binding("curviness", "curviness"),
       $(go.Shape, // the link path shape
         {
           isPanelMain: true,
@@ -257,6 +336,24 @@ function init() {
           stroke: null,
           fill: "gray"
         }),
+      $(go.TextBlock, //"from",
+        { 
+          segmentIndex: 0, 
+          segmentOffset: new go.Point(NaN, NaN),
+          segmentOrientation: go.Link.OrientUpright,
+          font: "10pt helvetica, arial, sans-serif",
+          stroke: "#333333", 
+        },
+        new go.Binding("text", "num_output").makeTwoWay()),
+      $(go.TextBlock, //"to",
+        { 
+          segmentIndex: -1, 
+          segmentOffset: new go.Point(NaN, NaN),
+          segmentOrientation: go.Link.OrientUpright,
+          font: "8pt helvetica, arial, sans-serif",
+          stroke: "#333333", 
+        },
+        new go.Binding("text", "text").makeTwoWay()),
       $(go.Panel, "Auto", // the link label, normally not visible
         {
           visible: false,
@@ -270,14 +367,14 @@ function init() {
             fill: "#F8F8F8",
             stroke: null
           }),
-        $(go.TextBlock, "Yes", // the label
+        $(go.TextBlock, //"blob", // the label (default name)
           {
             textAlign: "center",
             font: "10pt helvetica, arial, sans-serif",
             stroke: "#333333",
             editable: true
           },
-          new go.Binding("text", "text").makeTwoWay())
+          new go.Binding("text", "blob_name").makeTwoWay())
       )
     );
 
@@ -285,8 +382,12 @@ function init() {
   // This listener is called by the "LinkDrawn" and "LinkRelinked" DiagramEvents.
   function showLinkLabel(e) {
     var label = e.subject.findObject("LABEL");
-    if (label !== null) label.visible = (e.subject.fromNode.data.figure ===
-      "Diamond");
+    //console.log(e.subject.fromNode.data);
+    // if (label !== null) label.visible = (e.subject.fromNode.data.figure ===
+    //   "Diamond");
+    if (label !== null) {
+      label.visible = true;
+    }
   }
 
   // Make all ports on a node visible when the mouse is over the node
@@ -309,21 +410,6 @@ function init() {
   _model = prettifyJSONString(_model);
   document.getElementById("mySavedModel").value = _model;
 
-  // initialize the Palette that is on the left side of the page
-  BlobPalette =
-    $(go.Palette, "BLOB", // must name or refer to the DIV HTML element
-      {
-        "animationManager.duration": 800, // slightly longer than default (600ms) animation
-        nodeTemplateMap: myDiagram.nodeTemplateMap, // share the templates used by myDiagram
-        model: new go.GraphLinksModel([ // specify the contents of the Palette
-          {
-            category: "BLOB",
-            name: "Blob",
-            figure: "Ellipse"
-          },
-        ])
-      });
-
 
   myPalette =
     $(go.Palette, "myPalette", // must name or refer to the DIV HTML element
@@ -332,24 +418,34 @@ function init() {
         nodeTemplateMap: myDiagram.nodeTemplateMap, // share the templates used by myDiagram
         model: new go.GraphLinksModel([ // specify the contents of the Palette
           {
-            name: "DATA",
+            name: "Data",
+            type: "Data",
             category: "DATA"
           }, {
-            name: "RAW_DATA",
-            category: "RAW_DATA"
+            name: "SimpleData",
+            type: "SimpleData",
+            category: "DATA"
           }, {
-            name: "IMAGE_DATA",
-            category: "IMAGE_DATA"
+            name: "RawData",
+            type: "RawData",
+            category: "DATA"
           }, {
-            name: "DUMMY_DATA",
-            category: "DUMMY_DATA"
+            name: "PairData",
+            type: "PairData",
+            category: "DATA"
           }, {
-            name: "MEMORY_DATA",
-            category: "MEMORY_DATA"
+            name: "ImageData",
+            type: "ImageData",
+            category: "DATA"
           }, {
-            name: "PAIR_DATA",
-            category: "PAIR_DATA"
-          },
+            name: "DummyData",
+            type: "DummyData",
+            category: "DATA"
+          }, {
+            name: "MemoryData",
+            type: "MemoryData",
+            category: "DATA"
+          }, 
         ])
       });
 
@@ -360,35 +456,57 @@ function init() {
         nodeTemplateMap: myDiagram.nodeTemplateMap, // share the templates used by myDiagram
         model: new go.GraphLinksModel([ // specify the contents of the Palette
           {
-            name: "CONVOLUTION",
+            name: "Convolution",
+            type: "Convolution",
             category: "CONVOLUTION"
           }, {
-            name: "POOLING",
+            name: "ConvolutionData",
+            type: "ConvolutionData",
+            category: "CONVOLUTION"
+          }, {
+            name: "InnerProduct",
+            type: "InnerProduct",
+            category: "INNERPRODUCT"
+          }, {
+            name: "Pooling",
+            type: "Pooling",
             category: "POOLING"
           }, {
-            name: "POOLING",
-            category: "POOLING"
+            name: "SoftmaxWithLoss",
+            type: "SoftmaxWithLoss",
+            category: "LOSS"
           }, {
-            name: "SOFTMAX_LOSS",
-            category: "SOFTMAX_LOSS"
+            name: "Accuracy",
+            type: "Accuracy",
+            category: "LOSS"
           }, {
-            name: "ACCURACY",
-            category: "ACCURACY"
-          }, {
-            name: "RELU",
-            category: "RELU"
-          }, {
-            name: "SIDMOID",
-            category: "SIDMOID"
-          }, {
-            name: "DROPOUT",
-            category: "DROPOUT"
-          }, {
-            name: "CONCAT",
-            category: "CONCAT"
+            name: "Concat",
+            type: "Concat",
+            category: "OTHERS"
           }, {
             name: "BN",
-            category: "BN"
+            type: "BN",
+            category: "OTHERS"
+          }, {
+            name: "LRN",
+            type: "LRN",
+            category: "OTHERS"
+          }, {
+            name: "Eltwise",
+            type: "Eltwise",
+            category: "OTHERS"
+          }, {
+            name: "ReLU",
+            type: "ReLU",
+            category: "RELU"
+          }, {
+            name: "Sigmoid",
+            type: "Sigmoid",
+            category: "SIDMOID"
+          }, {
+            name: "Dropout",
+            type: "Dropout",
+            category: "DROPOUT"
           },
         ])
       });
