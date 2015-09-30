@@ -154,7 +154,7 @@ function init() {
         str_kernel_size += data.json.convolution_param.kernel_size + "*" + data.json.convolution_param.kernel_size +
           " filters";
       }
-      if (data.stat.h && data.stat.w) {
+      if (data.stat && data.stat.h && data.stat.w) {
         str_map_size += "@ " + data.stat.h + "*" + data.stat.w + " mapsize";
       }
       x += str_kernel_size + str_map_size + "</div></div>";
@@ -201,6 +201,10 @@ function init() {
       makePort("T", go.Spot.Top, true, false),
       makePort("L", go.Spot.Left, true, true),
       makePort("R", go.Spot.Right, true, true),
+      makePort("BL", go.Spot.BottomLeft, false, true),
+      makePort("BR", go.Spot.BottomRight, false, true),
+      makePort("TL", go.Spot.TopLeft, true, false),
+      makePort("TR", go.Spot.TopRight, true, false),
       makePort("B", go.Spot.Bottom, false, true)
     ));
 
@@ -232,6 +236,8 @@ function init() {
       makePort("R", go.Spot.Right, true, true),
       makePort("BL", go.Spot.BottomLeft, false, true),
       makePort("BR", go.Spot.BottomRight, false, true),
+      makePort("TL", go.Spot.TopLeft, true, false),
+      makePort("TR", go.Spot.TopRight, true, false),
       makePort("B", go.Spot.Bottom, false, true)
     ));
 
@@ -263,6 +269,8 @@ function init() {
       makePort("R", go.Spot.Right, true, true),
       makePort("BL", go.Spot.BottomLeft, false, true),
       makePort("BR", go.Spot.BottomRight, false, true),
+      makePort("TL", go.Spot.TopLeft, true, false),
+      makePort("TR", go.Spot.TopRight, true, false),
       makePort("B", go.Spot.Bottom, false, true)
     ));
 
@@ -294,6 +302,8 @@ function init() {
       makePort("R", go.Spot.Right, true, true),
       makePort("BL", go.Spot.BottomLeft, false, true),
       makePort("BR", go.Spot.BottomRight, false, true),
+      makePort("TL", go.Spot.TopLeft, true, false),
+      makePort("TR", go.Spot.TopRight, true, false),
       makePort("B", go.Spot.Bottom, false, true)
     ));
 

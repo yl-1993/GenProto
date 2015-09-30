@@ -9,8 +9,8 @@ function onSelectionChanged(e) {
     updateProperties(node.data);
     console.log(node.data);
   } else if (node instanceof go.Link) {
-    //updateLinkProperties(node.data);
-    //console.log(node.data)
+    updateLinkProperties(node.data);
+    console.log(node.data)
   } else {
     updateProperties(null);
   }
@@ -237,41 +237,53 @@ function updateLinkProperties(data) {
     var fromNode = myDiagram.model.findNodeDataForKey(data.from);
     var toNode = myDiagram.model.findNodeDataForKey(data.to);
     var num_output;
-    if (typeof(fromNode.json.top) == "string") {
-      if (fromNode.json.top == data.old_name) {
-        fromNode.json.top = data.blob_name;
-      } else { // more than one top
-        var original_top = fromNode.json.top;
-        fromNode.json.top = [];
-        fromNode.json.top.push(original_top);
-        fromNode.json.top.push(data.blob_name);
+    if (fromNode.json.top) {      
+      if (typeof(fromNode.json.top) == "string") {
+        //console.log(data)
+        if (fromNode.json.top == data.old_name) {
+          fromNode.json.top = data.blob_name;
+        } else { // more than one top
+          var original_top = fromNode.json.top;
+          if (original_top != data.blob_name) {
+            fromNode.json.top = [];
+            fromNode.json.top.push(original_top);
+            fromNode.json.top.push(data.blob_name);
+          }
+        }
+      } else {
+        var pos = fromNode.json.top.contains(data.old_name);
+        if (pos <= 0) { // a new top
+          fromNode.json.top.push(data.blob_name);
+        } else { // modify the old 'top'
+          fromNode.json.top[pos-1] = data.blob_name;
+        }
       }
     } else {
-      var pos = fromNode.json.top.contains(data.old_name);
-      if (pos <= 0) { // a new top
-        fromNode.json.top.push(data.blob_name);
-      } else { // modify the old 'top'
-        fromNode.json.top[pos-1] = data.blob_name;
-      }
+      // please warn the user
+      //fromNode.json.top = data.blob_name;
     }
     // fromNode.json.top = data.blob_name;
     // maybe has many bottom, modify each bottom
-    if (typeof(toNode.json.bottom) == "string") {
-      if (toNode.json.bottom == data.old_name) {
-        toNode.json.bottom = data.blob_name;
-      } else { // more than one bottom
-        var original_bottom = toNode.json.bottom;
-        toNode.json.bottom = [];
-        toNode.json.bottom.push(original_bottom);
-        toNode.json.bottom.push(data.blob_name);
+    if (toNode.json.bottom) {      
+      if (typeof(toNode.json.bottom) == "string") {
+        if (toNode.json.bottom == data.old_name) {
+          toNode.json.bottom = data.blob_name;
+        } else { // more than one bottom
+          var original_bottom = toNode.json.bottom;
+          toNode.json.bottom = [];
+          toNode.json.bottom.push(original_bottom);
+          toNode.json.bottom.push(data.blob_name);
+        }
+      } else {
+        var pos = toNode.json.bottom.contains(data.old_name);
+        if (pos <= 0) { // a new top
+          toNode.json.bottom.push(data.blob_name);
+        } else { // modify the old 'top'
+          toNode.json.bottom[pos-1] = data.blob_name;
+        }
       }
     } else {
-      var pos = toNode.json.bottom.contains(data.old_name);
-      if (pos <= 0) { // a new top
-        toNode.json.bottom.push(data.blob_name);
-      } else { // modify the old 'top'
-        toNode.json.bottom[pos-1] = data.blob_name;
-      }
+      toNode.json.bottom = data.blob_name;
     }
     // update
     data.old_name = data.blob_name;
