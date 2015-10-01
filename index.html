@@ -85,7 +85,7 @@
   }
   function gen_model() {
     showLoadingDiv();
-    var worker =new Worker("./js/parser_test.js"); 
+    var worker =new Worker("./js/parser.js"); 
     var data = {};
     data.prototxt = document.getElementById("prototxt").value;
     worker.postMessage(data);              
