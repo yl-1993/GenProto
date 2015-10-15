@@ -284,9 +284,9 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
         }
       }
 
-      if (!top_list.contains(top_node.name)) {
+      //if (!top_list.contains(top_node.name)) {
         model_size += top_node.stat.model_size;
-      }
+      //}
       //console.log(top_node.stat.model_size)
       //console.log(top_node)
       cur_top_nodes.push(top_node);
