@@ -493,15 +493,30 @@ function gen_structured_network() {
   var _stage = {};
   var _idx, _count, _name, _num_output, _length;
   var _bottom, _top, _channel;
-  _stage[0] = [16];
-  //_stage[1] = [32, 64];
-  //_stage[2] = [80]
+  var i, j;
+
+  var _stages_from_ui = document.getElementById('stages').value;
+  var _filters_from_ui = document.getElementById('filters').value;
+
+  if (isNaN(_stages_from_ui) || !_stages_from_ui) {
+    showErrorToast('Please fill the stages with posititve number!');
+    return;
+  }
+
+  var _filters_each_stage = _filters_from_ui.split(';');
+
+  for (i=0; i < _stages_from_ui; ++i) {
+    _stage[i] = _filters_each_stage[i].split(",");
+    for (j=0; j < _stage[i].length; ++j) {
+      _stage[i][j] = parseInt(_stage[i][j]);
+    }
+  }
 
   _type = 'inception_bn';
-  //_type = 'conv'
+  _type = 'conv'
 
   _pool_method = 'MAX'
-  _pool_method = 'AVE'
+  //_pool_method = 'AVE'
 
   var _stat = get_common_template(_type);
   var _common_template = _stat["template"];

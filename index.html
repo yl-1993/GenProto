@@ -266,7 +266,7 @@
 
 <div id="sample">
   <div style="width:100%; white-space:nowrap;">
-    <span style="display: inline-block; vertical-align: top; padding: 5px; width:15%">
+    <span style="display: none; vertical-align: top; padding: 5px; width:15%">
     <!---
       <h2>Blob</h2>
       <div id="BLOB" style="border: solid 1px gray; height: 60px"></div>
@@ -277,7 +277,7 @@
       <div id="myPalette1" style="border: solid 1px gray; height: 250px"></div>
     </span>
 
-    <span style="display: inline-block; vertical-align: top; padding: 5px; width:50%">
+    <span style="display: inline-block; vertical-align: top; padding: 5px; width:65%">
       <div id="myDiagram" style="border: solid 1px gray; height: 720px"></div>
       <div id="infoBoxHolder">
         <!-- Initially Empty, it is populated when updateInfoBox is called -->
@@ -289,7 +289,6 @@
           <tr>
             <td><button onclick="gen_simplified_struct()" style="display:block;">Simplify</button></td>
             <td><button id="SaveButton" onclick="save()" style="display:block;">Save</button></td>
-            <!-- <td><button onclick="gen_model_from_prototxt()" style="display:block;">Load</button></td> -->
             <td><button onclick="gen_model()" style="display:block;">Load</button></td>
           </tr>
           <tr>
@@ -309,6 +308,19 @@
           </tr>
           <tr>
             <td><button onclick="myDiagram.clear();">Clear board</button></td>
+          </tr>
+        </table>
+        <hr />
+        <table>
+          <tr>
+            <td>stage number: <input id="stages" type="text" min="1" placeholder="4" value="4" /></td>
+          </tr>
+          <tr>
+            <td>filter number in each stage:  (splitted by ','and';')</td>
+          </tr>
+          <tr>
+            <td><input id="filters" type="text" min="1" style="width:100%" 
+              placeholder="16,16;32,32,64,64;80,80;160" value="16,16;32,32,64,64;80,80;160"/></td>
           </tr>
           <tr>
             <td><button onclick="gen_structured_network()">Generate structured network</button></td>
