@@ -3,7 +3,6 @@ function doc2str(fn) {
 }
 
 
-var CONV_PATTERN = "conv";
 var INCEPTION_BN_TEMPLATE = doc2str(function(){/*
 layer {
   name: "ic#%#NAME#%#/1x1"
@@ -337,6 +336,473 @@ layer {
 
 */});
 
+var INCEPTION_TEMPLATE = doc2str(function(){/*
+layer {
+  name: "ic#%#NAME#%#/1x1"
+  type: "ConvolutionData"
+  bottom: "#%#BOTTOM#%#"
+  top: "ic#%#NAME#%#/1x1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL1#%#
+    kernel_size: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_1x1"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/1x1"
+  top: "ic#%#NAME#%#/1x1"
+}
+layer {
+  name: "ic#%#NAME#%#/3x3"
+  type: "ConvolutionData"
+  bottom: "#%#BOTTOM#%#"
+  top: "ic#%#NAME#%#/3x3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL2#%#
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_3x3"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/3x3"
+  top: "ic#%#NAME#%#/3x3"
+}
+layer {
+  name: "ic#%#NAME#%#/3x3_reduce"
+  type: "ConvolutionData"
+  bottom: "#%#BOTTOM#%#"
+  top: "ic#%#NAME#%#/3x3_reduce"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL3#%#
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_3x3_reduce"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/3x3_reduce"
+  top: "ic#%#NAME#%#/3x3_reduce"
+}
+layer {
+  name: "ic#%#NAME#%#/3x3_stack"
+  type: "ConvolutionData"
+  bottom: "ic#%#NAME#%#/3x3_reduce"
+  top: "ic#%#NAME#%#/3x3_stack"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL3#%#
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_3x3_stack"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/3x3_stack"
+  top: "ic#%#NAME#%#/3x3_stack"
+}
+layer {
+  name: "ic#%#NAME#%#/pool"
+  type: "Pooling"
+  bottom: "#%#BOTTOM#%#"
+  top: "ic#%#NAME#%#/pool"
+  pooling_param {
+    pool: AVE
+    kernel_size: 3
+    stride: 1
+    pad: 1
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/pool_proj"
+  type: "ConvolutionData"
+  bottom: "ic#%#NAME#%#/pool"
+  top: "ic#%#NAME#%#/pool_proj"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL4#%#
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_pool_proj"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/pool_proj"
+  top: "ic#%#NAME#%#/pool_proj"
+}
+layer {
+  name: "output_ic#%#NAME#%#"
+  type: "Concat"
+  bottom: "ic#%#NAME#%#/1x1"
+  bottom: "ic#%#NAME#%#/3x3"
+  bottom: "ic#%#NAME#%#/3x3_stack"
+  bottom: "ic#%#NAME#%#/pool_proj"
+  top: "output_ic#%#NAME#%#"
+}
+
+*/});
+
+
+var INCEPTION_MB_TEMPLATE = doc2str(function(){/*
+layer {
+  name: "ic#%#NAME#%#/1x1"
+  type: "ConvolutionData"
+  bottom: "#%#BOTTOM#%#"
+  top: "ic#%#NAME#%#/1x1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL1#%#
+    kernel_size: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_1x1"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/1x1"
+  top: "ic#%#NAME#%#/1x1"
+}
+layer {
+  name: "ic#%#NAME#%#/3x3"
+  type: "ConvolutionData"
+  bottom: "#%#BOTTOM#%#"
+  top: "ic#%#NAME#%#/3x3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL2#%#
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_3x3"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/3x3"
+  top: "ic#%#NAME#%#/3x3"
+}
+layer {
+  name: "ic#%#NAME#%#/3x3_reduce"
+  type: "ConvolutionData"
+  bottom: "#%#BOTTOM#%#"
+  top: "ic#%#NAME#%#/3x3_reduce"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL3#%#
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_3x3_reduce"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/3x3_reduce"
+  top: "ic#%#NAME#%#/3x3_reduce"
+}
+layer {
+  name: "ic#%#NAME#%#/3x3_stack"
+  type: "ConvolutionData"
+  bottom: "ic#%#NAME#%#/3x3_reduce"
+  top: "ic#%#NAME#%#/3x3_stack"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL3#%#
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_3x3_stack"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/3x3_stack"
+  top: "ic#%#NAME#%#/3x3_stack"
+}
+layer {
+  name: "ic#%#NAME#%#/3x3_reduce_mb"
+  type: "ConvolutionData"
+  bottom: "#%#BOTTOM#%#"
+  top: "ic#%#NAME#%#/3x3_reduce_mb"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL3#%#
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_3x3_reduce_mb"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/3x3_reduce_mb"
+  top: "ic#%#NAME#%#/3x3_reduce_mb"
+}
+layer {
+  name: "ic#%#NAME#%#/3x3_stack_a"
+  type: "ConvolutionData"
+  bottom: "ic#%#NAME#%#/3x3_reduce_mb"
+  top: "ic#%#NAME#%#/3x3_stack_a_mb"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL3#%#
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_3x3_stack_a_mb"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/3x3_stack_a_mb"
+  top: "ic#%#NAME#%#/3x3_stack_a_mb"
+}
+layer {
+  name: "ic#%#NAME#%#/3x3_stack_b"
+  type: "ConvolutionData"
+  bottom: "ic#%#NAME#%#/3x3_stack_a_mb"
+  top: "ic#%#NAME#%#/3x3_stack_b_mb"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL3#%#
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_3x3_stack_b_mb"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/3x3_stack_b_mb"
+  top: "ic#%#NAME#%#/3x3_stack_b_mb"
+}
+layer {
+  name: "ic#%#NAME#%#/pool"
+  type: "Pooling"
+  bottom: "#%#BOTTOM#%#"
+  top: "ic#%#NAME#%#/pool"
+  pooling_param {
+    pool: AVE
+    kernel_size: 3
+    stride: 1
+    pad: 1
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/pool_proj"
+  type: "ConvolutionData"
+  bottom: "ic#%#NAME#%#/pool"
+  top: "ic#%#NAME#%#/pool_proj"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: #%#CHANNEL4#%#
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "ic#%#NAME#%#/relu_pool_proj"
+  type: "ReLU"
+  bottom: "ic#%#NAME#%#/pool_proj"
+  top: "ic#%#NAME#%#/pool_proj"
+}
+layer {
+  name: "output_ic#%#NAME#%#"
+  type: "Concat"
+  bottom: "ic#%#NAME#%#/1x1"
+  bottom: "ic#%#NAME#%#/3x3"
+  bottom: "ic#%#NAME#%#/3x3_stack"
+  bottom: "ic#%#NAME#%#/3x3_stack_b_mb"
+  bottom: "ic#%#NAME#%#/pool_proj"
+  top: "output_ic#%#NAME#%#"
+}
+
+*/});
+
+
 var CONV_LAYER_TEMPLATE = doc2str(function(){/*
 layer {
   name: "conv#%#NAME#%#"
@@ -465,6 +931,16 @@ layer {
 
 '*/});
 
+function changeSNPanel() {
+  var _type = document.getElementById('sn_unit_type').value;
+  if (_type.search('inception')>=0) {
+    document.getElementById('sn_tr_inception_type').style.display = "block";
+  } else {
+    document.getElementById('sn_tr_inception_type').style.display = "none";
+  }
+}
+
+
 function get_common_template(type) {
   switch(type) {
     case 'conv':
@@ -473,6 +949,18 @@ function get_common_template(type) {
         "name": "conv",
         "output": "prelu"
       };
+    case 'inception':
+      return {
+        "template": INCEPTION_TEMPLATE,
+        "name": "ic",
+        "output": "output_ic"
+      };
+    case 'inception_mb':
+      return {
+        "template": INCEPTION_MB_TEMPLATE,
+        "name": "ic",
+        "output": "output_ic"
+      };    
     case 'inception_bn':
       return {
         "template": INCEPTION_BN_TEMPLATE,
@@ -490,9 +978,11 @@ function gen_structured_network() {
 	var _common_layer = '';
 	var _loss_layer = '';
   var _type = ''
+  var _isbn = '';
   var _stage = {};
   var _idx, _count, _name, _num_output, _length;
   var _bottom, _top, _channel;
+  var _channel01, _channel02, _channel03, _channel04;
   var i, j;
 
   var _stages_from_ui = document.getElementById('stages').value;
@@ -512,11 +1002,22 @@ function gen_structured_network() {
     }
   }
 
-  _type = 'inception_bn';
-  _type = 'conv'
+  _type = document.getElementById('sn_unit_type').value;
+  //_type = 'inception_bn';
+  //_type = 'inception';
+  //_type = 'inception_mb';
+  //_type = 'conv'
+  _isbn = document.getElementById('sn_bn').value;
+  if (_isbn == "1") _type += "_bn";
 
-  _pool_method = 'MAX'
+  _pool_method = document.getElementById('sn_pool_method').value;
+  //_pool_method = 'MAX'
   //_pool_method = 'AVE'
+
+  _inception_method = document.getElementById('sn_inception_type').value;
+  //_inception_method = 'up'
+  //_inception_method = 'down'
+  //_inception_method = 'equal'
 
   var _stat = get_common_template(_type);
   var _common_template = _stat["template"];
@@ -535,12 +1036,32 @@ function gen_structured_network() {
       _tmp_str = _tmp_str.replace(/#%#NAME#%#/g, _name);
       if (_type == 'conv') {
         _tmp_str = _tmp_str.replace(/#%#CHANNELS#%#/g, _channel);
-      } else if (_type == 'inception_bn') {
-        _tmp_str = _tmp_str.replace(/#%#CHANNEL1#%#/g, _channel/8);
-        _tmp_str = _tmp_str.replace(/#%#CHANNEL2#%#/g, _channel/4);
-        _tmp_str = _tmp_str.replace(/#%#CHANNEL3#%#/g, _channel/2);
-        _tmp_str = _tmp_str.replace(/#%#CHANNEL4#%#/g, _channel/8);
+      } else if (_type == 'inception_bn' || _type == 'inception' || _type == 'inception_mb') {
+        if (_inception_method == 'up') {
+          _channel01 = _channel/8;
+          _channel02 = _channel/4;
+          _channel03 = _channel/2;
+          _channel04 = _channel/8;
+        } else if (_inception_method == 'down') {
+          _channel01 = _channel/2;
+          _channel02 = _channel/4;
+          _channel03 = _channel/8;
+          _channel04 = _channel/8;          
+        } else {
+          _channel01 = _channel/4;
+          _channel02 = _channel/4;
+          _channel03 = _channel/4;
+          _channel04 = _channel/4;            
+        }
+
+        _tmp_str = _tmp_str.replace(/#%#CHANNEL1#%#/g, _channel01);
+        _tmp_str = _tmp_str.replace(/#%#CHANNEL2#%#/g, _channel02);
+        _tmp_str = _tmp_str.replace(/#%#CHANNEL3#%#/g, _channel03);
+        _tmp_str = _tmp_str.replace(/#%#CHANNEL4#%#/g, _channel04);
       }
+
+
+
       _common_layer += _tmp_str;
       _bottom = _output_pattern+_name;
     }

@@ -43,7 +43,6 @@ input{
 
 select{
   display: block;
-  width: 80%;
   min-width: 120px;
   background: #ffffff;
   border: 1px solid #cccccc;

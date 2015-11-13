@@ -277,19 +277,42 @@
       <div id="myPalette1" style="border: solid 1px gray; height: 250px"></div>
     </span>
 
-    <span style="display: inline-block; vertical-align: top; padding: 5px; width:65%">
-      <div id="myDiagram" style="border: solid 1px gray; height: 720px"></div>
+    <span style="display: inline-block; vertical-align: top; padding: 5px; width:45%">
+      <div id="myDiagram" style="border: solid 1px gray; height: 800px"></div>
       <div id="infoBoxHolder">
         <!-- Initially Empty, it is populated when updateInfoBox is called -->
       </div>
     </span>
 
     <span style="display: inline-block; vertical-align: top; padding: 5px; width:30%">
+        <h4>Prototxt: </h4>
+        <div>
+          <textarea style="width: 100%;height: 500px;" id="prototxt"></textarea>
+        </div>
+        <h4>Relationship</h4>
+        <div>
+          Top Layers: <b id="topLayers"></b> <br/>
+          Bottom Layers:<b id="bottomLayers"></b>
+        </div>
+        <div style="margin-top:5px">
+          <!-- <div id="json_edit_panel" onchange="saveEditedLayer()"> -->
+          <div id="json_edit_panel">
+            <h4>Layer: </h4>
+            <textarea id="layer_edit" style="width: 400px; max-height: 600px;"></textarea>
+            <div style="display:none;">
+              <button onclick="saveEditedLayer()">save</button>
+            </div>
+            <div id="editor_holder"></div>
+
+          </div>
+        </div>
+    </span>
+
+    <span style="display: inline-block; vertical-align: top; padding: 5px; width:18%">
         <table>
           <tr>
             <td><button onclick="gen_simplified_struct()" style="display:block;">Simplify</button></td>
             <td><button id="SaveButton" onclick="save()" style="display:block;">Save</button></td>
-            <td><button onclick="gen_model()" style="display:block;">Load</button></td>
           </tr>
           <tr>
             <td><button onclick="saveTextAsFile()" style="display:block;">Download</button></td>
@@ -313,17 +336,54 @@
         <hr />
         <table>
           <tr>
-            <td>stage number: <input id="stages" type="text" min="1" placeholder="4" value="4" /></td>
+            <td>#stage: <input id="stages" type="text" min="1" placeholder="4" value="4" /></td>
           </tr>
           <tr>
-            <td>filter number in each stage:  (splitted by ','and';')</td>
+            <td>#filter in each stage:<br/>(splitted by ','and';')</td>
           </tr>
           <tr>
             <td><input id="filters" type="text" min="1" style="width:100%" 
               placeholder="16,16;32,32,64,64;80,80;160" value="16,16;32,32,64,64;80,80;160"/></td>
           </tr>
           <tr>
+            <td>Unit type:
+              <select id="sn_unit_type" onchange="changeSNPanel()">
+                <option value ="conv">conv+prelu</option>
+                <option value ="inception">inception</option>
+                <option value ="inception_mb">inception_mb</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>BN:
+              <select id="sn_bn">
+                <option value ="0">No</option>
+                <option value ="1">Yes</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Pool method:
+              <select id="sn_pool_method">
+                <option value ="AVE">AVE</option>
+                <option value ="MAX">MAX</option>
+              </select>
+            </td>
+          </tr>
+          <tr id="sn_tr_inception_type" style="display:none;">
+            <td>Inception type:
+              <select id="sn_inception_type">
+                <option value ="equal">equal</option>
+                <option value ="down">down</option>
+                <option value ="up">up</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
             <td><button onclick="gen_structured_network()">Generate structured network</button></td>
+          </tr>
+          <tr>
+            <td><button onclick="gen_model()" style="display:block;">Load</button></td>
           </tr>
         </table>
         <div style="margin-top: 10px;">
@@ -333,7 +393,7 @@
           <input id="input_channel" onchange="recompute_model_size();"/>
         </div>
         <div style="margin-top: 10px;">
-          Model size is about: <b id="model_size_mb">0</b> MB (<b id="model_size">0</b> KB)
+          Model size is about: <b id="model_size_mb">0</b> MB <div style="display:none">(<b id="model_size">0</b> KB)</div>
         </div>
 <!--         <div style="">
           Memory required for data is: <b id="data_memory">1</b> MB
@@ -357,27 +417,6 @@
             </table>
           </div>
         </div> -->
-        <div style="margin-top:10px">
-          <!-- <div id="json_edit_panel" onchange="saveEditedLayer()"> -->
-          <div id="json_edit_panel">
-            <h4>Layer: </h4>
-            <textarea id="layer_edit" style="width: 400px; max-height: 600px;"></textarea>
-            <div style="display:none;">
-              <button onclick="saveEditedLayer()">save</button>
-            </div>
-            <div id="editor_holder"></div>
-
-          </div>
-        </div>
-        <h4>Relationship</h4>
-        <div>
-          Top Layers: <b id="topLayers"></b> <br/>
-          Bottom Layers:<b id="bottomLayers"></b>
-        </div>
-        <h4>Prototxt: </h4>
-        <div>
-          <textarea style="width: 100%;height: 500px;" id="prototxt"></textarea>
-        </div>
     </span>
 
   </div>
