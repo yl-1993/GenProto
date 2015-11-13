@@ -213,6 +213,7 @@ function updateProperties(data) {
   var dom = document.getElementById("layer_edit");
   dom.value = prototxt_to_edit;
   editor_layer.setValue(dom.value);
+  editor_layer.setSize("100%", 300);
   // resizeTextarea(dom); // textarea has been hided by CodeMirror
 
 
