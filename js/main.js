@@ -130,7 +130,8 @@ function init() {
 
     var infoBox = document.getElementById("infoBox");
     var elem = document.elementFromPoint(e.clientX, e.clientY);
-    if (elem === infoBox || elem.parentNode === infoBox) {
+    //if (elem === infoBox || elem.parentNode === infoBox) {
+    if (elem === infoBox) {
       var box = document.getElementById("infoBoxHolder");
       box.style.left = parseInt(box.style.left) + "px";
       box.style.top = parseInt(box.style.top) + 30 + "px";

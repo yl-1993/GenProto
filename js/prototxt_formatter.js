@@ -67,21 +67,40 @@ function save_prototxt(_model) {
   var _node_data_array = _model[0]['nodeDataArray'];
   var _link_data_array = _model[0]['linkDataArray'];
   var jsons = [];
+  var json, _layer_name = '';
   var i,j,k;
 
   //translate json to prototxt
   for(i = 0; i < _node_data_array.length; i += 1){
-    var json = _node_data_array[i].json;
+    json = _node_data_array[i].json;
     prototxt += json2prototxt_layer(json, false);
+    for(j = 0; j < _link_data_array.length; j += 1){
+      if(_link_data_array[j].from == _node_data_array[i].name 
+        && _link_data_array[j].text == "ReLU"){
+        prototxt += json2prototxt_layer(_link_data_array[j].relu_data, false);
+        break;
+      }
+      if(_link_data_array[j].from == _node_data_array[i].name 
+        && _link_data_array[j].text == "Dropout"){
+        prototxt += json2prototxt_layer(_link_data_array[j].dropout_data, false);
+        break;
+      }
+      if(_link_data_array[j].from == _node_data_array[i].name 
+        && _link_data_array[j].text == "ReLU&Dropout"){
+        prototxt += json2prototxt_layer(_link_data_array[j].relu_data, false);
+        prototxt += json2prototxt_layer(_link_data_array[j].dropout_data, false);
+        break;
+      }
+    }
   }
   //look for relu layer (hidden)
-  for(i = 0; i < _link_data_array.length; i += 1){
-    if(_link_data_array[i].text == "ReLU"){
-      prototxt += json2prototxt_layer(_link_data_array[i].relu_data, false);
-    }
-    if(_link_data_array[i].text == "Dropout"){
-      prototxt += json2prototxt_layer(_link_data_array[i].dropout_data, false);
-    }
-  }
+  // for(i = 0; i < _link_data_array.length; i += 1){
+  //   if(_link_data_array[i].text == "ReLU"){
+  //     prototxt += json2prototxt_layer(_link_data_array[i].relu_data, false);
+  //   }
+  //   if(_link_data_array[i].text == "Dropout"){
+  //     prototxt += json2prototxt_layer(_link_data_array[i].dropout_data, false);
+  //   }
+  // }
   return prototxt;
 }
