@@ -48,9 +48,6 @@ function compute_attr_info(_node_data_array, _link_data_array) {
     _edge_from[_link_data_array[i]["from"]].push(_link_data_array[i]["to"]);
   }
 
-  // console.log(_edge_to);
-  // console.log(_edge_from);
-
   // select bottom and top
   var bottom_list = [];
   var top_list = [];
@@ -159,7 +156,7 @@ function check_whc(bottom_list, _node_data_array) {
   return res;
 }
 
-function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_data_array, _link_data_array) {
+function compute_model_size_old(bottom_list, top_list, _edge_from, _node_data_array, _link_data_array) {
   var res = check_whc(bottom_list, _node_data_array);
   var cur_bottom = bottom_list;
   var cur_bottom_nodes = [];
@@ -223,6 +220,7 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
         top_node.stat.w = w;
         top_node.stat.h = h;
         top_node.stat.c = 0;
+        console.log(c_array);
         for (k = 0; k < c_array.length; ++k) {
           top_node.stat.c += c_array[k]; 
         }
@@ -234,7 +232,7 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
           //return 0;
         }
         c = c_array[0];
-        //console.log(c)
+        console.log(c_array)
         w = parseInt(w);
         h = parseInt(h);
         c = parseInt(c);
@@ -299,121 +297,174 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
   return model_size;
 }
 
-function compute_model_size_old(_node_data_array, _link_data_array) {
-  var _node_data_num = _node_data_array.length;
-  var _link_data_num = _link_data_array.length;
-  var _map = {};
-  var _struct_list = [];
-  // parse layers
-  for (var i = 0; i < _node_data_num; ++i) {
-    var _data = _node_data_array[i];
-    var _layer = {};
-
-    _layer["key"] = _data["key"];
-    _layer["name"] = _data["name"];
-    _layer["category"] = _data["category"];
-    if (_data.category != 'BLOB') {
-      var param_list = get_param_list(_layers[_data.category]);
-      if (param_list) {
-        var param_num = param_list.length;
-        for (var j = 0; j < param_num; ++j) {
-          if (_data[param_list[j]]) {
-            _layer[param_list[j]] = _data[param_list[j]];
-          }
-        }
-      }
-      if (_data["phase"]) {
-        _layer["phase"] = _data["phase"];
-      }
-
-    }
-    _map[_data["key"]] = _layer;
-  }
-  // parse over
-
-  _edge_to = {};
-
-  for (var i = 0; i < _link_data_num; ++i) {
-    if (!_edge_to[_link_data_array[i]["to"]]) {
-      _edge_to[_link_data_array[i]["to"]] = [];
-    }
-    _link_data_array[i]["points"] = [];
-    _link_data_array[i]["fromPort"] = "T";
-    _link_data_array[i]["toPort"] = "B";
-    _edge_to[_link_data_array[i]["to"]].push(_edge_to[_link_data_array[i][
-      "from"
-    ]]);
-  }
-  // select bottom
-  var bottom_list = [];
-  for (var _key in _map) {
-    if (!_edge_to[_key]) {
-      bottom_list.push(_map[_key]);
-    }
-  }
-
-  var cur_bottom = bottom_list;
-
-  for (var i = 0; i < cur_bottom.length; ++i) {
-    if (cur_bottom[i].width && cur_bottom[i].height) {
-      cur_bottom[i]._map_wsize = cur_bottom[i].width;
-      cur_bottom[i]._map_hsize = cur_bottom[i].height;
-    }
-  }
-
-  console.log(cur_bottom);
-
-  var model_size = 0;
-  var calculation = 0;
-
-  while (cur_bottom.length) {
-    var layer_cur_top = [];
-    for (var j = 0; j < cur_bottom.length; ++j) {
-      var cur_top = [];
-      for (var i = 0; i < _link_data_num; ++i) {
-        if (_link_data_array[i]["from"] == cur_bottom[j].key) {
-          cur_top.push(_map[_link_data_array[i]["to"]]);
-        }
-      }
-      console.log(cur_bottom[j]);
-      for (var i = 0; i < cur_top.length; ++i) {
-        if (cur_top[i].category == "CONVOLUTION" || cur_top[i].category ==
-          "INNER_PRODUCT") {
-          if (cur_bottom[j].kernel_h && cur_bottom[j].kernel_w && cur_bottom[j]
-            .stride && cur_bottom[j].num_output && cur_top[i].num_output) {
-            var tmp_num = (cur_bottom[j].kernel_h * cur_bottom[j].kernel_w *
-              cur_bottom[j].num_output * cur_top[i].num_output) / (cur_bottom[
-              j].stride * cur_bottom[j].stride);
-            model_size += tmp_num;
-            calculation += tmp_num * cur_bottom[j]._map_wsize * cur_bottom[j]._map_hsize;
-          } else if (cur_bottom[j].kernel_size && cur_bottom[j].stride &&
-            cur_bottom[j].num_output && cur_top[i].num_output) {
-            var tmp_num = (cur_bottom[j].kernel_size * cur_bottom[j].kernel_size *
-              cur_bottom[j].num_output * cur_top[i].num_output) / (cur_bottom[
-              j].stride * cur_bottom[j].stride);
-            model_size += tmp_num;
-            calculation += tmp_num * cur_bottom[j]._map_wsize * cur_bottom[j]._map_hsize;
-          }
+function compute_layer_size(cur_top, w, h, c, model_size) {
+  var top_node;
+  for (i = 0; i < cur_top.length; ++i) {
+    top_node = myDiagram.model.findNodeDataForKey(cur_top[i]);
+    if (top_node.type == "Concat") {
+      if (!top_node.stat || Object.keys(top_node.stat).length == 0){
+        top_node.stat = {};
+        top_node.stat.w = w;
+        top_node.stat.h = h;
+        top_node.stat.c = 0;
+      } 
+      
+      top_node.stat.c += c; 
+      top_node.stat.model_size = 0;
+    } else {
+      top_node.stat = {};
+      w = parseInt(w);
+      h = parseInt(h);
+      c = parseInt(c);
+      if (top_node.type == "Convolution" || top_node.type == "ConvolutionData") {
+        var num_output = parseInt(top_node.json.convolution_param.num_output);
+        var kernel_size = parseInt(top_node.json.convolution_param.kernel_size);
+        var stride = parseInt(top_node.json.convolution_param.stride || 1);
+        var pad = parseInt(top_node.json.convolution_param.pad || 0);
+        if (num_output && kernel_size && stride) {
+          top_node.stat.w = (w + 2*pad - kernel_size + 1) / stride;
+          top_node.stat.h = (h + 2*pad - kernel_size + 1) / stride;
+          top_node.stat.c = num_output;
+          top_node.stat.model_size = c*(kernel_size*kernel_size)*num_output;
         } else {
-          cur_top[i]._map_wsize = cur_bottom[j]._map_wsize;
-          cur_top[i]._map_hsize = cur_bottom[j]._map_hsize;
+          showErrorToast("Some parameters are lost! Please check layer: " + top_node.name);
+          return 0;
         }
-        layer_cur_top.push(cur_top[i]);
-        for (var k = 0; k < _node_data_num; ++k) {
-          if (_node_data_array[k].key == cur_top[i].key) {
-            _node_data_array[k]._map_wsize = cur_top[i]._map_wsize;
-            _node_data_array[k]._map_hsize = cur_top[i]._map_hsize;
-            break;
-          }
+      } else if (top_node.type == "InnerProduct" || top_node.type == "InnerProductAll") {
+        var num_output = parseInt(top_node.json.inner_product_param.num_output);
+        if (num_output) {
+          top_node.stat.w = w;
+          top_node.stat.h = h;
+          top_node.stat.c = num_output;
+          top_node.stat.model_size = (w*h*c)*num_output;
+        } else {
+          showErrorToast("Some parameters are lost! Please check layer: " + top_node.name);
+          return 0;
         }
+      } else if (top_node.type == "Pooling") {
+        var kernel_size = parseInt(top_node.json.pooling_param.kernel_size);
+        var stride = parseInt(top_node.json.pooling_param.stride || 1);
+        var pad = parseInt(top_node.json.pooling_param.pad || 0);
+        if (kernel_size && stride) {
+          top_node.stat.w = (w + 2*pad - kernel_size) / stride + 1;
+          top_node.stat.h = (h + 2*pad - kernel_size) / stride + 1;
+          top_node.stat.c = c;
+          top_node.stat.model_size = 0;
+        } else {
+          showErrorToast("Some parameters are lost! Please check layer: " + top_node.name);
+          return 0;
+        }
+      } else {
+        top_node.stat.w = w;
+        top_node.stat.h = h;
+        top_node.stat.c = c;
+        top_node.stat.model_size = 0;
       }
     }
-    // update current bottom
-    //layer_cur_top = unique(layer_cur_top);
-    cur_bottom = layer_cur_top;
-    //console.log(cur_bottom);
+
+    model_size += top_node.stat.model_size;
+
+
   }
-  console.log(calculation);
+  return model_size;
+}
+
+
+function get_topology_struct(_bottom_list, _node_map, _node_dict, _node_num) {
+  var top_node, stack_top;
+  var topology_list = [];
+  var count = 0;
+  var stack = [];
+  var i;
+  // init
+  for (i = 0; i < _bottom_list.length; ++i) {
+    stack.push(_bottom_list[i]);
+    _node_dict[_bottom_list[i]] = 1;
+  }
+  
+  // search
+  while(count < _node_num) {
+    stack_top = stack[stack.length-1];
+    top_node = _node_map[stack_top];
+    // check
+    if (!top_node || top_node.length == 0) {
+      _node_dict[stack_top] = 2;
+      topology_list.push(stack.pop());
+      count += 1;
+      continue;
+    }
+    // push
+    for (i = 0; i < top_node.length; ++i) {
+      if (_node_dict[top_node[i]] == 0) {      
+        stack.push(top_node[i]);
+        _node_dict[top_node[i]] = 1;
+      } else if (_node_dict[top_node[i]] == 1) { // check whether there is a loop
+        showErrorToast("There is a loop! Please check layer: "+top_node[i]);
+        throw "There is a loop! Please check layer: "+top_node[i];
+        return;
+      } else {
+        continue;
+      }
+    }
+    // check
+    if (stack_top == stack[stack.length-1]) {
+      _node_dict[stack_top] = 2;
+      topology_list.push(stack.pop());
+      count += 1;
+      continue;
+    }
+  }
+  return topology_list;
+}
+
+function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_data_array, _link_data_array) {
+  var res = check_whc(bottom_list, _node_data_array);
+  var cur_bottom = bottom_list;
+  var node;
+  var cur_top;
+  var cur_top_nodes;
+  var topology_list = [];
+  var i, j;
+  var w, h;
+  var model_size = 0;
+  // get the topology structure
+  var node_dict = {};
+  var node_num = _node_data_array.length;
+  console.log(node_num);
+  for (i = 0; i < node_num; ++i) {
+    node_dict[_node_data_array[i].name] = 0;
+    _node_data_array[i].stat = {};  // prevent accumulation of 'Concat' channels
+  }
+  topology_list = get_topology_struct(bottom_list, _edge_from, node_dict, node_num);
+
+  // get initial value of h,w,c
+  for (i = 0; i < cur_bottom.length; ++i) {
+    node = myDiagram.model.findNodeDataForKey(cur_bottom[i]);
+    if (node) {
+      node.stat = {}
+      node.stat.w = res.w;
+      node.stat.h = res.h;
+      node.stat.c = res.c;
+    } else {
+      showErrorToast("Cannot find node: " + cur_bottom[i]);
+      return 0;
+    }
+  }
+  for (i = node_num-1; i >= 0; --i) {
+    cur_node = topology_list[i];
+    cur_top = _edge_from[cur_node];
+    if (cur_top && cur_top.length > 0) {
+      cur_top = cur_top.unique();
+
+      node = myDiagram.model.findNodeDataForKey(cur_node);
+      w = node.stat.w;
+      h = node.stat.h;
+      c = node.stat.c;
+
+      // handle current top node
+      model_size = compute_layer_size(cur_top, w, h, c, model_size);
+    }
+  }
   return model_size;
 }
 
