@@ -90,6 +90,7 @@
     worker.postMessage(data);              
     worker.onmessage =function(evt){      
       var _model = go.Model.fromJson(evt.data);
+      myDiagram.model = go.Model.fromJson(_model.toJson()); // store the prototxt to global model
       document.getElementById("mySavedModel").value = gen_loc_from_layers(_model["nodeDataArray"], 
         _model["linkDataArray"], _model);
       load();
