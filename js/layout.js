@@ -249,6 +249,10 @@ function gen_loc_from_layers_old(_node_data_array, _link_data_array, _model) {
 }
 
 
+function get_x_from_node(node) {
+  return parseInt(node.loc.split(" ")[0])
+}
+
 
 function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
   'use strict';
@@ -408,14 +412,17 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
   var bottom_x = start_x;
   var cur_depth = [];
   cur_depth.sort(function(a,b){
-            return b.layout.nextdepth-a.layout.nextdepth});
+            var a_x = parseInt(a.loc.split(" ")[0]);
+            var b_x = parseInt(b.loc.split(" ")[0]);
+            console.log(a_x)
+            return a_x-b_x;});
 
   // cal the position of inner node
   for (i = min_depth+1; i <= max_depth; ++i) {
     cur_depth = depth_list[i];
     cur_depth_num = cur_depth.length;
 
-    cur_depth.sort();
+    //cur_depth.sort();
     cur_start_x = start_x - (cur_depth_num - 1.0) / 2 * delta_x;
     for (j = 0; j < cur_depth_num; ++j) {
       cur_depth[j].loc =  get_loc(cur_start_x + j * delta_x, start_y + i * delta_y);     
@@ -428,9 +435,47 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
           cur_node = myDiagram.model.findNodeDataForKey(cur_node[0]);
           bottom_x = cur_node.loc.split(" ")[0];
           cur_depth[j].loc =  get_loc(bottom_x, start_y + i * delta_y);
+
         }
-      } 
+      } else if (cur_node.length > 1 && cur_depth[j].layout.nextdepth<MAX_DEPTH) {
+        var tmp_ave_x = 0;
+        for (k = 0; k < cur_node.length; ++k) {
+          var tmp_cur_node = myDiagram.model.findNodeDataForKey(cur_node[k]);
+          bottom_x = tmp_cur_node.loc.split(" ")[0];
+          tmp_ave_x += parseInt(tmp_ave_x);
+        }
+        cur_depth[j].loc =  get_loc(tmp_ave_x/cur_node.length, start_y + i * delta_y);
+      }
     }
+
+    // check
+    cur_depth.sort(function(a,b){
+              var a_x = parseInt(a.loc.split(" ")[0]);
+              var b_x = parseInt(b.loc.split(" ")[0]);
+              if (a_x == b_x) {
+                var bottom_a = _edge_to[a.key][0];
+                var bottom_b = _edge_to[b.key][0];
+                bottom_a = myDiagram.model.findNodeDataForKey(bottom_a);
+                bottom_b = myDiagram.model.findNodeDataForKey(bottom_b);
+                var bottom_a_x = parseInt(bottom_a.loc.split(" ")[0]);
+                var bottom_b_x = parseInt(bottom_b.loc.split(" ")[0]);
+                return bottom_a_x-bottom_b_x; 
+              } else {
+                return a_x-b_x;
+              }
+            });
+    var tmp_node_x = get_x_from_node(cur_depth[0]);
+    var tmp_next_node_x;
+    for (j = 0; j < cur_depth_num-1; ++j) {
+      tmp_next_node_x = get_x_from_node(cur_depth[j+1]);
+      if (tmp_node_x+delta_x > tmp_next_node_x) {
+        cur_depth[j+1].loc = get_loc(tmp_node_x+delta_x, start_y + i * delta_y);
+        tmp_node_x = tmp_node_x+delta_x;
+      } else {
+        tmp_node_x = tmp_next_node_x;
+      }
+    }
+
   }
 
   for (i = 0; i < _link_data_num; ++i) {
