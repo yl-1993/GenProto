@@ -192,8 +192,8 @@ function compute_layer_size(cur_top, w, h, c, model_size) {
       } else if (top_node.type == "InnerProduct" || top_node.type == "InnerProductAll") {
         var num_output = parseInt(top_node.json.inner_product_param.num_output);
         if (num_output) {
-          top_node.stat.w = w;
-          top_node.stat.h = h;
+          top_node.stat.w = 1;
+          top_node.stat.h = 1;
           top_node.stat.c = num_output;
           top_node.stat.model_size = (w*h*c)*num_output;
         } else {
