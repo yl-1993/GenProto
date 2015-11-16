@@ -3,8 +3,6 @@ function get_loc(start_x, start_y) {
 }
 
 function compute_attr_info(_node_data_array, _link_data_array) {
-  //document.getElementById("model_size").innerHTML = compute_model_size(_node_data_array, _link_data_array);
-  //document.getElementById("data_memory").innerHTML = compute_data_memory(_node_data_array, _link_data_array);
   var _node_data_num = _node_data_array.length;
   var _link_data_num = _link_data_array.length;
   var _map = {};
@@ -60,9 +58,10 @@ function compute_attr_info(_node_data_array, _link_data_array) {
     }
   }
 
-  var model_size = compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_data_array, _link_data_array);
-  document.getElementById('model_size').innerHTML = model_size*4;
-  document.getElementById('model_size_mb').innerHTML = model_size*4/1024/1024;
+  var res = compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_data_array, _link_data_array);
+  document.getElementById('model_size').innerHTML = res.model_size*4;
+  document.getElementById('model_size_mb').innerHTML = res.model_size*4/1024/1024;
+  document.getElementById('calculation').innerHTML = res.calculation;
 }
 
 function search_obj_for_whc(json) {
@@ -156,7 +155,7 @@ function check_whc(bottom_list, _node_data_array) {
   return res;
 }
 
-function compute_layer_size(cur_top, w, h, c, model_size) {
+function compute_layer_size(cur_top, w, h, c, model_size, calculation) {
   var top_node;
   for (i = 0; i < cur_top.length; ++i) {
     top_node = myDiagram.model.findNodeDataForKey(cur_top[i]);
@@ -170,6 +169,7 @@ function compute_layer_size(cur_top, w, h, c, model_size) {
       
       top_node.stat.c += c; 
       top_node.stat.model_size = 0;
+      top_node.stat.calculation = 0;
     } else {
       top_node.stat = {};
       w = parseInt(w);
@@ -185,6 +185,7 @@ function compute_layer_size(cur_top, w, h, c, model_size) {
           top_node.stat.h = Math.floor((h + 2*pad - kernel_size)*1.0 / stride) + 1;
           top_node.stat.c = num_output;
           top_node.stat.model_size = c*(kernel_size*kernel_size)*num_output;
+          top_node.stat.calculation = w*h*c*(kernel_size*kernel_size)*num_output;
         } else {
           showErrorToast("Some parameters are lost! Please check layer: " + top_node.name);
           return 0;
@@ -196,6 +197,7 @@ function compute_layer_size(cur_top, w, h, c, model_size) {
           top_node.stat.h = 1;
           top_node.stat.c = num_output;
           top_node.stat.model_size = (w*h*c)*num_output;
+          top_node.stat.calculation = top_node.stat.model_size;
         } else {
           showErrorToast("Some parameters are lost! Please check layer: " + top_node.name);
           return 0;
@@ -209,6 +211,7 @@ function compute_layer_size(cur_top, w, h, c, model_size) {
           top_node.stat.h = Math.ceil((h + 2*pad - kernel_size)*1.0 / stride) + 1;
           top_node.stat.c = c;
           top_node.stat.model_size = 0;
+          top_node.stat.calculation = 0;
         } else {
           showErrorToast("Some parameters are lost! Please check layer: " + top_node.name);
           return 0;
@@ -218,14 +221,19 @@ function compute_layer_size(cur_top, w, h, c, model_size) {
         top_node.stat.h = h;
         top_node.stat.c = c;
         top_node.stat.model_size = 0;
+        top_node.stat.calculation = 0;
       }
     }
 
     model_size += top_node.stat.model_size;
+    calculation += top_node.stat.calculation;
 
 
   }
-  return model_size;
+  return {
+    "model_size": model_size,
+    "calculation": calculation
+  };
 }
 
 
@@ -286,6 +294,8 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
   var i, j;
   var w, h;
   var model_size = 0;
+  var calculation = 0;
+  var res;
   // get the topology structure
   var node_dict = {};
   var node_num = _node_data_array.length;
@@ -320,10 +330,15 @@ function compute_model_size(bottom_list, top_list, _edge_to, _edge_from, _node_d
       c = node.stat.c;
 
       // handle current top node
-      model_size = compute_layer_size(cur_top, w, h, c, model_size);
+      res = compute_layer_size(cur_top, w, h, c, model_size, calculation);
+      model_size = res.model_size;
+      calculation = res.calculation;
     }
   }
-  return model_size;
+  return {
+    "model_size": model_size,
+    "calculation": calculation
+  };
 }
 
 function compute_data_memory(_node_data_array, _link_data_array) {
