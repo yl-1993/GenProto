@@ -181,8 +181,8 @@ function compute_layer_size(cur_top, w, h, c, model_size) {
         var stride = parseInt(top_node.json.convolution_param.stride || 1);
         var pad = parseInt(top_node.json.convolution_param.pad || 0);
         if (num_output && kernel_size && stride) {
-          top_node.stat.w = (w + 2*pad - kernel_size + 1) / stride;
-          top_node.stat.h = (h + 2*pad - kernel_size + 1) / stride;
+          top_node.stat.w = Math.floor((w + 2*pad - kernel_size)*1.0 / stride) + 1;
+          top_node.stat.h = Math.floor((h + 2*pad - kernel_size)*1.0 / stride) + 1;
           top_node.stat.c = num_output;
           top_node.stat.model_size = c*(kernel_size*kernel_size)*num_output;
         } else {
@@ -205,8 +205,8 @@ function compute_layer_size(cur_top, w, h, c, model_size) {
         var stride = parseInt(top_node.json.pooling_param.stride || 1);
         var pad = parseInt(top_node.json.pooling_param.pad || 0);
         if (kernel_size && stride) {
-          top_node.stat.w = (w + 2*pad - kernel_size) / stride + 1;
-          top_node.stat.h = (h + 2*pad - kernel_size) / stride + 1;
+          top_node.stat.w = Math.ceil((w + 2*pad - kernel_size)*1.0 / stride) + 1;
+          top_node.stat.h = Math.ceil((h + 2*pad - kernel_size)*1.0 / stride) + 1;
           top_node.stat.c = c;
           top_node.stat.model_size = 0;
         } else {
