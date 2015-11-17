@@ -309,7 +309,13 @@
     </span>
 
     <span style="display: inline-block; vertical-align: top; padding: 5px; width:18%">
-        <table>
+        
+        <img id="uparrow" style="float:left;display:none" src="./assets/img/up.png" onclick="$('#toolbox').toggle();$('#downarrow').show();$('#uparrow').hide()"/>
+        <img id="downarrow" style="float:left" src="./assets/img/down.png" onclick="$('#toolbox').toggle();$('#downarrow').hide();$('#uparrow').show()"/>
+        <div style="margin-top: 5px;">
+          ToolBox
+        </div>
+        <table id="toolbox" style="display:none;">
           <tr>
             <td><button onclick="gen_simplified_struct()" style="display:block;">Simplify</button></td>
             <td><button id="SaveButton" onclick="save()" style="display:block;">Save</button></td>
