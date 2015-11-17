@@ -802,7 +802,6 @@ layer {
 
 */});
 
-
 var CONV_LAYER_TEMPLATE = doc2str(function(){/*
 layer {
   name: "conv#%#NAME#%#"
@@ -1059,8 +1058,6 @@ function gen_structured_network() {
         _tmp_str = _tmp_str.replace(/#%#CHANNEL3#%#/g, _channel03);
         _tmp_str = _tmp_str.replace(/#%#CHANNEL4#%#/g, _channel04);
       }
-
-
 
       _common_layer += _tmp_str;
       _bottom = _output_pattern+_name;
