@@ -3,6 +3,8 @@ function get_loc(start_x, start_y) {
 }
 
 function compute_attr_info(_node_data_array, _link_data_array) {
+  'use strict';
+  var i;
   var _node_data_num = _node_data_array.length;
   var _link_data_num = _link_data_array.length;
 
@@ -37,12 +39,16 @@ function compute_attr_info(_node_data_array, _link_data_array) {
 }
 
 function search_obj_for_whc(json) {
+  'use strict';
   var wflag = true, hflag = true, cflag = true;
   var w, h ,c;
-  for (var obj in json) {
+  var obj;
+  var param;
+  var key_obj;
+  for (obj in json) {
     if (typeof(json[obj]) == "object") {
-      var param = json[obj];
-      for (var key_obj in param){
+      param = json[obj];
+      for (key_obj in param){
         if (param[key_obj]) {
           if(key_obj == "width") {
             w = param[key_obj];
@@ -81,6 +87,7 @@ function search_obj_for_whc(json) {
 }
 
 function check_whc(bottom_list, _node_data_array) {
+  'use strict';
   var i, j;
   var w, h ,c;
   var wflag, hflag, cflag;
@@ -128,7 +135,10 @@ function check_whc(bottom_list, _node_data_array) {
 }
 
 function compute_layer_size(cur_top, w, h, c, model_size, calculation) {
+  'use strict';
+  var i;
   var top_node;
+  var num_output, kernel_size, stride, pad;
   for (i = 0; i < cur_top.length; ++i) {
     top_node = myDiagram.model.findNodeDataForKey(cur_top[i]);
     if (top_node.type == "Concat") {
@@ -148,10 +158,10 @@ function compute_layer_size(cur_top, w, h, c, model_size, calculation) {
       h = parseInt(h);
       c = parseInt(c);
       if (top_node.type == "Convolution" || top_node.type == "ConvolutionData") {
-        var num_output = parseInt(top_node.json.convolution_param.num_output);
-        var kernel_size = parseInt(top_node.json.convolution_param.kernel_size);
-        var stride = parseInt(top_node.json.convolution_param.stride || 1);
-        var pad = parseInt(top_node.json.convolution_param.pad || 0);
+        num_output = parseInt(top_node.json.convolution_param.num_output);
+        kernel_size = parseInt(top_node.json.convolution_param.kernel_size);
+        stride = parseInt(top_node.json.convolution_param.stride || 1);
+        pad = parseInt(top_node.json.convolution_param.pad || 0);
         if (num_output && kernel_size && stride) {
           top_node.stat.w = Math.floor((w + 2*pad - kernel_size)*1.0 / stride) + 1;
           top_node.stat.h = Math.floor((h + 2*pad - kernel_size)*1.0 / stride) + 1;
@@ -163,7 +173,7 @@ function compute_layer_size(cur_top, w, h, c, model_size, calculation) {
           return 0;
         }
       } else if (top_node.type == "InnerProduct" || top_node.type == "InnerProductAll") {
-        var num_output = parseInt(top_node.json.inner_product_param.num_output);
+        num_output = parseInt(top_node.json.inner_product_param.num_output);
         if (num_output) {
           top_node.stat.w = 1;
           top_node.stat.h = 1;
@@ -175,9 +185,9 @@ function compute_layer_size(cur_top, w, h, c, model_size, calculation) {
           return 0;
         }
       } else if (top_node.type == "Pooling") {
-        var kernel_size = parseInt(top_node.json.pooling_param.kernel_size);
-        var stride = parseInt(top_node.json.pooling_param.stride || 1);
-        var pad = parseInt(top_node.json.pooling_param.pad || 0);
+        kernel_size = parseInt(top_node.json.pooling_param.kernel_size);
+        stride = parseInt(top_node.json.pooling_param.stride || 1);
+        pad = parseInt(top_node.json.pooling_param.pad || 0);
         if (kernel_size && stride) {
           top_node.stat.w = Math.ceil((w + 2*pad - kernel_size)*1.0 / stride) + 1;
           top_node.stat.h = Math.ceil((h + 2*pad - kernel_size)*1.0 / stride) + 1;
@@ -200,7 +210,6 @@ function compute_layer_size(cur_top, w, h, c, model_size, calculation) {
     model_size += top_node.stat.model_size;
     calculation += top_node.stat.calculation;
 
-
   }
   return {
     "model_size": model_size,
@@ -210,6 +219,7 @@ function compute_layer_size(cur_top, w, h, c, model_size, calculation) {
 
 
 function get_topology_struct(_bottom_list, _node_map, _node_dict, _node_num) {
+  'use strict'
   var top_node, stack_top;
   var topology_list = [];
   var count = 0;
@@ -258,17 +268,18 @@ function get_topology_struct(_bottom_list, _node_map, _node_dict, _node_num) {
 }
 
 function compute_model_size(bottom_list, _edge_from, _node_data_array) {
+  'use strict'
   var res = check_whc(bottom_list, _node_data_array);
   var cur_bottom = bottom_list;
   var node;
   var cur_top;
   var topology_list = [];
   var i, j;
-  var w, h;
+  var w, h, c;
   var model_size = 0;
   var calculation = 0;
-  var res;
   // get the topology structure
+  var cur_node;
   var node_dict = {};
   var node_num = _node_data_array.length;
   for (i = 0; i < node_num; ++i) {
