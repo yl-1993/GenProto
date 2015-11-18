@@ -1,3 +1,4 @@
+var prototxt_content = doc2str(function(){/*
 name: "GoogleNet"
 layer {
   name: "data"
@@ -2431,3 +2432,5 @@ layer {
     top_k: 5
   }
 }
+
+*/});
