@@ -5,38 +5,10 @@ function get_loc(start_x, start_y) {
 function compute_attr_info(_node_data_array, _link_data_array) {
   var _node_data_num = _node_data_array.length;
   var _link_data_num = _link_data_array.length;
-  var _map = {};
 
   var _edge_to = {};
   var _edge_from = {};
 
-  var _data;
-  var _layer;
-  var param_list;
-  var param_num;
-  // parse layers
-  for (i = 0; i < _node_data_num; ++i) {
-    _data = _node_data_array[i];
-    _layer = {};
-
-    _layer["name"] = _data["name"]
-    _layer["category"] = _data["category"]
-
-    param_list = get_param_list(_layers[_data.category]);
-    if (param_list) {
-      param_num = param_list.length;
-      for (j = 0; j < param_num; ++j) {
-        if (_data[param_list[j]]) {
-          _layer[param_list[j]] = _data[param_list[j]];
-        }
-      }
-    }
-    if (_data["phase"]) {
-      _layer["phase"] = _data["phase"];
-    }
-    
-    _map[_data["key"]] = _layer;
-  }
   for (i = 0; i < _link_data_num; ++i) {
     if (!_edge_to[_link_data_array[i]["to"]]) {
       _edge_to[_link_data_array[i]["to"]] = [];
@@ -51,7 +23,8 @@ function compute_attr_info(_node_data_array, _link_data_array) {
   // select bottom and top
   var bottom_list = [];
   var _key;
-  for (_key in _map) {
+  for (i = 0; i < _node_data_num; ++i) {
+    _key = _node_data_array[i].key;
     if (!_edge_to[_key]) {
       bottom_list.push(_key);
     }
@@ -280,6 +253,7 @@ function get_topology_struct(_bottom_list, _node_map, _node_dict, _node_num) {
       continue;
     }
   }
+
   return topology_list;
 }
 
@@ -288,7 +262,6 @@ function compute_model_size(bottom_list, _edge_from, _node_data_array) {
   var cur_bottom = bottom_list;
   var node;
   var cur_top;
-  var cur_top_nodes;
   var topology_list = [];
   var i, j;
   var w, h;

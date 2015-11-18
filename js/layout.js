@@ -34,11 +34,10 @@ function get_x_from_node(node) {
 
 function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
   'use strict';
-  // modified nodeDataArray loc
+
   var MAX_DEPTH = 200;
   var _node_data_num = _node_data_array.length;
   var _link_data_num = _link_data_array.length;
-  var _map = {};
   var start_x = -45;
   var start_y = 325;
   var delta_x = 200;
@@ -46,34 +45,6 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
   var min_depth = 1;
   var max_depth = min_depth;
   var i, j, k;
-  
-  // parse layers
-  var _data;
-  var _layer;
-  var param_list;
-  var param_num;
-  for (i = 0; i < _node_data_num; ++i) {
-    _data = _node_data_array[i];
-    _layer = {};
-
-    _layer["name"] = _data["name"]
-    _layer["category"] = _data["category"]
-
-    param_list = get_param_list(_layers[_data.category]);
-    if (param_list) {
-      param_num = param_list.length;
-      for (j = 0; j < param_num; ++j) {
-        if (_data[param_list[j]]) {
-          _layer[param_list[j]] = _data[param_list[j]];
-        }
-      }
-    }
-    if (_data["phase"]) {
-      _layer["phase"] = _data["phase"];
-    }
-    
-    _map[_data["key"]] = _layer;
-  }
 
   var _edge_to = {};
   var _edge_from = {};
@@ -89,14 +60,17 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
     _link_data_array[i]["fromPort"] = "T";
     _link_data_array[i]["toPort"] = "B";
     _edge_to[_link_data_array[i]["to"]].push(_link_data_array[i]["from"]);
-    _edge_from[_link_data_array[i]["from"]].push(_link_data_array[i]["to"]);
+    _edge_from[_link_data_array[i]["from"]].push(
+      myDiagram.model.findNodeDataForKey(_link_data_array[i]["to"])
+      );
   }
-
+  
   // select bottom and top
   var bottom_list = [];
   var top_list = [];
   var _key;
-  for (_key in _map) {
+  for (i = 0; i < _node_data_num; ++i) {
+    _key = _node_data_array[i].key; 
     if (!_edge_to[_key]) {
       bottom_list.push(_key);
     }
@@ -107,10 +81,10 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
 
   // Calculate position of bottom node
   var cur_node, cur_top_node;
-  var cur_bottom = bottom_list;
+  var cur_bottom = [];
   var cur_start_x = start_x - (cur_bottom.length - 1.0) / 2 * delta_x;
-  for (i = 0; i < cur_bottom.length; ++i) {
-    cur_node = myDiagram.model.findNodeDataForKey(cur_bottom[i]);
+  for (i = 0; i < bottom_list.length; ++i) {
+    cur_node = myDiagram.model.findNodeDataForKey(bottom_list[i]);
     if (top_list.length >= 2) {
       cur_node.loc = get_loc(start_x, start_y - i * delta_y);        
     } else {
@@ -118,74 +92,73 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
     }
     cur_node.layout = {};
     cur_node.layout.depth = min_depth;
+    cur_bottom.push(cur_node);
   }
 
   // Calculate the depth and next depth of each node (BFS)
   var depth;
   var depth_list = {};
-  var cur_top, single_cur_top, cur_top_num;
+  var bfs_list = [];
+  var cur_top, cur_top_num;
   while (cur_bottom.length > 0) {
     cur_top = [];
+    bfs_list.push(cur_bottom);
     // gather all current nodes
     for (i = 0 ; i < cur_bottom.length; ++i) {
-      cur_node = myDiagram.model.findNodeDataForKey(cur_bottom[i]);
-      depth = cur_node.layout.depth;
-      single_cur_top = _edge_from[cur_bottom[i]];
-      if (!single_cur_top) {
+      cur_top_node = _edge_from[cur_bottom[i].key];
+      if (!cur_top_node) {
         continue;
       }
-      for (j = 0; j < single_cur_top.length; ++j) {
-        cur_top_node = myDiagram.model.findNodeDataForKey(single_cur_top[j]);
-        if(cur_top_node.layout) {
-          if (cur_top_node.layout.depth) {
-            if (cur_top_node.layout.depth < depth + 1) {
-              cur_top_node.layout.depth = depth + 1;
+      depth = cur_bottom[i].layout.depth;
+      for (j = 0; j < cur_top_node.length; ++j) {
+        if(cur_top_node[j].layout) {
+          if (cur_top_node[j].layout.depth) {
+            if (cur_top_node[j].layout.depth < depth + 1) {
+              cur_top_node[j].layout.depth = depth + 1;
             }            
           } else {
-            cur_top_node.layout.depth = depth + 1;
+            cur_top_node[j].layout.depth = depth + 1;
           }
         } else {
-          cur_top_node.layout = {};
-          cur_top_node.layout.depth = depth + 1;          
+          cur_top_node[j].layout = {};
+          cur_top_node[j].layout.depth = depth + 1;          
         }
-        cur_top.push(single_cur_top[j]);
+        if (!cur_top.contains(cur_top_node[j]))
+          cur_top.push(cur_top_node[j]);
       }
     } 
     cur_bottom = cur_top;
   }
 
   // update min next depth && store the node ordered by depth
-  cur_bottom = bottom_list;
-  while (cur_bottom.length > 0) {
-    cur_top = [];
+  var bfs_num = bfs_list.length;
+  var bfs_i;
+  for (bfs_i = 0; bfs_i < bfs_num; ++bfs_i) {
+    cur_node = bfs_list.pop();
     // gather all current nodes
-    for (i = 0 ; i < cur_bottom.length; ++i) {
-      cur_node = myDiagram.model.findNodeDataForKey(cur_bottom[i]);
-      depth = cur_node.layout.depth;
+    for (i = 0 ; i < cur_node.length; ++i) {
+      depth = cur_node[i].layout.depth;
       if (depth > max_depth) max_depth = depth;
       if (!depth_list[depth]) {
         depth_list[depth] = [];
       }
-      if (!depth_list[depth].contains(cur_node)) {
-        depth_list[depth].push(cur_node);
+      if (!depth_list[depth].contains(cur_node[i])) {
+        depth_list[depth].push(cur_node[i]);
       }
 
-      if (!cur_node.layout.nextdepth) {
-        cur_node.layout.nextdepth = MAX_DEPTH; // the nextdepth of top node is MAX_DEPTH
+      if (!cur_node[i].layout.nextdepth) {
+        cur_node[i].layout.nextdepth = MAX_DEPTH; // the nextdepth of top node is MAX_DEPTH
       }
-      single_cur_top = _edge_from[cur_bottom[i]];
-      if (!single_cur_top) {
+      cur_top = _edge_from[cur_node[i].key];
+      if (!cur_top) {
         continue;
       }
-      for (j = 0; j < single_cur_top.length; ++j) {
-        cur_top_node = myDiagram.model.findNodeDataForKey(single_cur_top[j]);
-        if(cur_top_node.layout.depth < cur_node.layout.nextdepth) {
-          cur_node.layout.nextdepth = cur_top_node.layout.depth;
+      for (j = 0; j < cur_top.length; ++j) {
+        if(cur_top[j].layout.depth < cur_node[i].layout.nextdepth) {
+          cur_node[i].layout.nextdepth = cur_top[j].layout.depth;
         }
-        cur_top.push(single_cur_top[j]);
       }
     } 
-    cur_bottom = cur_top;
   }
 
   // define sort function
@@ -207,7 +180,7 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
       cur_node = _edge_to[cur_depth[j].key];
       if (cur_node.length == 1) {      
         cur_top_node = _edge_from[cur_node[0]];
-        if (cur_top_node.length == 1 && cur_top_node[0] == cur_depth[j].key) {
+        if (cur_top_node.length == 1 && cur_top_node[0].key == cur_depth[j].key) {
           cur_node = myDiagram.model.findNodeDataForKey(cur_node[0]);
           bottom_x = cur_node.loc.split(" ")[0];
           cur_depth[j].loc =  get_loc(bottom_x, start_y + i * delta_y);
@@ -258,12 +231,11 @@ function gen_loc_from_layers(_node_data_array, _link_data_array, _model) {
   for (i = 0; i < _link_data_num; ++i) {
     for (j = 0; j < bottom_list.length; ++j) {
       for (k = 0; k < top_list.length; ++k) {
-        if (k > 0 && k < top_list.length - 1){
+        if (k > 0 && k < top_list.length - 1){ // handle the most right and most left nodes 
           continue;
         }
         if (_link_data_array[i]["from"] == bottom_list[j] && 
-           _link_data_array[i]["to"] == top_list[k] &&
-           _edge_from[bottom_list[j]].contains(top_list[k])) {
+           _link_data_array[i]["to"] == top_list[k] ) {
           if (k == 0) {
             if (top_list.length == 1) {
               if (j%2 == 0){

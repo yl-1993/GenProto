@@ -350,7 +350,6 @@ function gen_model_from_prototxt(prototxt) {
   'use strict';
   
   // parsing the prototxt
-  //var prototxt = document.getElementById("prototxt").value;
   var layers_arr = layer_split(prototxt);
   var nodeDataArray = [];
   var linkDataArray = [];
@@ -362,8 +361,6 @@ function gen_model_from_prototxt(prototxt) {
   }
   nodeDataArray = wrap_model(jsonArray);
 
-  // console.log(jsonArray);
-  // console.log(nodeDataArray);
   linkDataArray = generate_link(nodeDataArray);
   nodeDataArray = removeReluLayer(nodeDataArray, linkDataArray);
   var _struct_json = {};
