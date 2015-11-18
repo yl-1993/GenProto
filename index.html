@@ -36,6 +36,7 @@
 <script src="./js/stat.js"></script>
 
 <script src="./js/test.js"></script>
+<script src="./js/func.js"></script>
 
 <!-- optimize textarea -->
 <link rel="stylesheet" href="lib/codemirror-5.6/lib/codemirror.css">
@@ -246,10 +247,12 @@
 </script>
 
 <script>
-
-
-
-
+  function rm_bn() {
+    var _struct_json = document.getElementById("mySavedModel").value;
+    var _model = go.Model.fromJson(_struct_json);
+    document.getElementById("mySavedModel").value = remove_bn_layers(_model["nodeDataArray"], _model["linkDataArray"], _model);
+    load();
+  }
 </script>
 <script type="text/javascript" src="data.json"></script>
 <script>
@@ -313,6 +316,9 @@
           </tr>
           <tr>
             <td><button onclick="myDiagram.clear();">Clear board</button></td>
+          </tr>
+          <tr>
+            <td><button onclick="rm_bn();">Remove BN</button></td>
           </tr>
         </table>
         <div style="margin-top: 10px;">

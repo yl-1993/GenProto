@@ -141,6 +141,10 @@ function compute_layer_size(cur_top, w, h, c, model_size, calculation) {
   var num_output, kernel_size, stride, pad;
   for (i = 0; i < cur_top.length; ++i) {
     top_node = myDiagram.model.findNodeDataForKey(cur_top[i]);
+    if(!top_node) {
+      console.log("Node "+cur_top[i]+" is missing!");
+      continue;
+    }
     if (top_node.type == "Concat") {
       if (!top_node.stat || Object.keys(top_node.stat).length == 0){
         top_node.stat = {};
