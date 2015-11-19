@@ -378,7 +378,7 @@
           </tr>
           <tr>
             <td>BN:
-              <select id="sn_bn">
+              <select id="sn_bn" onchange="changeSNPanel()">
                 <option value ="0">No</option>
                 <option value ="1">Yes</option>
               </select>
@@ -386,13 +386,13 @@
           </tr>
           <tr>
             <td>Pool method:
-              <select id="sn_pool_method">
-                <option value ="AVE">AVE</option>
+              <select id="sn_pool_method" onchange="changeSNPanel()">
                 <option value ="MAX">MAX</option>
+                <option value ="AVE">AVE</option>
               </select>
             </td>
           </tr>
-          <tr id="sn_tr_inception_type" style="display:none;">
+          <tr id="sn_tr_inception_type" style="display:none;" onchange="changeSNPanel()">
             <td>Inception type:
               <select id="sn_inception_type">
                 <option value ="equal">equal</option>
@@ -464,32 +464,26 @@
   "nodeDataArray": [
     {
       "json": {
-        "name": "cifar",
-        "type": "Data",
+        "name": "image_input",
+        "type": "ImageData",
         "top": [
           "data",
           "label"
         ],
-        "include": {
-          "phase": "TRAIN"
-        },
-        "transform_param": {
-          "mean_file": "examples/cifar10/mean.binaryproto"
-        },
-        "data_param": {
-          "source": "examples/cifar10/cifar10_train_lmdb",
-          "batch_size": 100,
-          "backend": "LMDB"
+        "image_data_param": {
+          "source": "train.txt",
+          "batch_size": 256,
+          "is_color": 1
         }
       },
-      "name": "cifar",
+      "name": "image_input",
       "top": [
         "data",
         "label"
       ],
-      "type": "Data",
-      "category": "DATA",
-      "key": "cifar_TRAIN",
+      "type": "ImageData",
+      "category": "OTHERS",
+      "key": "image_input",
       "loc": "-45 325",
       "layout": {
         "depth": 1,
@@ -498,371 +492,87 @@
     },
     {
       "json": {
-        "name": "cifar",
-        "type": "Data",
-        "top": [
-          "data",
-          "label"
-        ],
-        "include": {
-          "phase": "TEST"
-        },
-        "transform_param": {
-          "mean_file": "examples/cifar10/mean.binaryproto"
-        },
-        "data_param": {
-          "source": "examples/cifar10/cifar10_test_lmdb",
-          "batch_size": 100,
-          "backend": "LMDB"
-        }
-      },
-      "name": "cifar",
-      "top": [
-        "data",
-        "label"
-      ],
-      "type": "Data",
-      "category": "DATA",
-      "key": "cifar_TEST",
-      "loc": "-45 455",
-      "layout": {
-        "depth": 1,
-        "nextdepth": 2
-      }
-    },
-    {
-      "json": {
-        "name": "conv1",
-        "type": "Convolution",
+        "name": "conv01",
+        "type": "ConvolutionData",
         "bottom": "data",
-        "top": "conv1",
-        "param": [
-          {
-            "lr_mult": 1
-          },
-          {
-            "lr_mult": 2
-          }
-        ],
+        "top": "conv01",
         "convolution_param": {
-          "num_output": 32,
-          "pad": 2,
-          "kernel_size": 5,
+          "num_output": 16,
+          "pad": 1,
+          "kernel_size": 3,
           "stride": 1,
           "weight_filler": {
-            "type": "gaussian",
-            "std": 0.0001
+            "type": "msra",
+            "variance_norm": "FAN_OUT"
           },
           "bias_filler": {
-            "type": "constant"
+            "type": "constant",
+            "value": 0
           }
         }
       },
-      "name": "conv1",
-      "top": "conv1",
+      "name": "conv01",
+      "top": "conv01",
       "bottom": "data",
-      "type": "Convolution",
-      "category": "CONVOLUTION",
-      "key": "conv1",
+      "type": "ConvolutionData",
+      "category": "CONVOLUTIONDATA",
+      "key": "conv01",
       "layout": {
         "depth": 2,
         "nextdepth": 3
       },
-      "loc": "0 65"
+      "loc": "-45 65"
     },
     {
       "json": {
-        "name": "pool1",
-        "type": "Pooling",
-        "bottom": "conv1",
-        "top": "pool1",
-        "pooling_param": {
-          "pool": "MAX",
-          "kernel_size": 3,
-          "stride": 2
-        }
+        "name": "prelu01",
+        "type": "PReLU",
+        "bottom": "conv01",
+        "top": "prelu01"
       },
-      "name": "pool1",
-      "top": "pool1",
-      "bottom": "conv1",
-      "type": "Pooling",
-      "category": "POOLING",
-      "key": "pool1",
+      "name": "prelu01",
+      "top": "prelu01",
+      "bottom": "conv01",
+      "type": "PReLU",
+      "category": "OTHERS",
+      "key": "prelu01",
       "layout": {
         "depth": 3,
         "nextdepth": 4
       },
-      "loc": "0 -65"
+      "loc": "-45 -65"
     },
     {
       "json": {
-        "name": "norm1",
-        "type": "LRN",
-        "bottom": "pool1",
-        "top": "norm1",
-        "lrn_param": {
-          "local_size": 3,
-          "alpha": 0.00005,
-          "beta": 0.75,
-          "norm_region": "WITHIN_CHANNEL"
+        "name": "pool01",
+        "type": "Pooling",
+        "bottom": "prelu01",
+        "top": "pool01",
+        "pooling_param": {
+          "pool": "MAX",
+          "kernel_size": 2,
+          "stride": 2
         }
       },
-      "name": "norm1",
-      "top": "norm1",
-      "bottom": "pool1",
-      "type": "LRN",
-      "category": "OTHERS",
-      "key": "norm1",
+      "name": "pool01",
+      "top": "pool01",
+      "bottom": "prelu01",
+      "type": "Pooling",
+      "category": "POOLING",
+      "key": "pool01",
       "layout": {
         "depth": 4,
-        "nextdepth": 5
-      },
-      "loc": "0 -195"
-    },
-    {
-      "json": {
-        "name": "conv2",
-        "type": "Convolution",
-        "bottom": "norm1",
-        "top": "conv2",
-        "param": [
-          {
-            "lr_mult": 1
-          },
-          {
-            "lr_mult": 2
-          }
-        ],
-        "convolution_param": {
-          "num_output": 32,
-          "pad": 2,
-          "kernel_size": 5,
-          "stride": 1,
-          "weight_filler": {
-            "type": "gaussian",
-            "std": 0.01
-          },
-          "bias_filler": {
-            "type": "constant"
-          }
-        }
-      },
-      "name": "conv2",
-      "top": "conv2",
-      "bottom": "norm1",
-      "type": "Convolution",
-      "category": "CONVOLUTION",
-      "key": "conv2",
-      "layout": {
-        "depth": 5,
-        "nextdepth": 6
-      },
-      "loc": "0 -325"
-    },
-    {
-      "json": {
-        "name": "pool2",
-        "type": "Pooling",
-        "bottom": "conv2",
-        "top": "pool2",
-        "pooling_param": {
-          "pool": "AVE",
-          "kernel_size": 3,
-          "stride": 2
-        }
-      },
-      "name": "pool2",
-      "top": "pool2",
-      "bottom": "conv2",
-      "type": "Pooling",
-      "category": "POOLING",
-      "key": "pool2",
-      "layout": {
-        "depth": 6,
-        "nextdepth": 7
-      },
-      "loc": "0 -455"
-    },
-    {
-      "json": {
-        "name": "norm2",
-        "type": "LRN",
-        "bottom": "pool2",
-        "top": "norm2",
-        "lrn_param": {
-          "local_size": 3,
-          "alpha": 0.00005,
-          "beta": 0.75,
-          "norm_region": "WITHIN_CHANNEL"
-        }
-      },
-      "name": "norm2",
-      "top": "norm2",
-      "bottom": "pool2",
-      "type": "LRN",
-      "category": "OTHERS",
-      "key": "norm2",
-      "layout": {
-        "depth": 7,
-        "nextdepth": 8
-      },
-      "loc": "0 -585"
-    },
-    {
-      "json": {
-        "name": "conv3",
-        "type": "Convolution",
-        "bottom": "norm2",
-        "top": "conv3",
-        "convolution_param": {
-          "num_output": 64,
-          "pad": 2,
-          "kernel_size": 5,
-          "stride": 1,
-          "weight_filler": {
-            "type": "gaussian",
-            "std": 0.01
-          },
-          "bias_filler": {
-            "type": "constant"
-          }
-        }
-      },
-      "name": "conv3",
-      "top": "conv3",
-      "bottom": "norm2",
-      "type": "Convolution",
-      "category": "CONVOLUTION",
-      "key": "conv3",
-      "layout": {
-        "depth": 8,
-        "nextdepth": 9
-      },
-      "loc": "0 -715"
-    },
-    {
-      "json": {
-        "name": "pool3",
-        "type": "Pooling",
-        "bottom": "conv3",
-        "top": "pool3",
-        "pooling_param": {
-          "pool": "AVE",
-          "kernel_size": 3,
-          "stride": 2
-        }
-      },
-      "name": "pool3",
-      "top": "pool3",
-      "bottom": "conv3",
-      "type": "Pooling",
-      "category": "POOLING",
-      "key": "pool3",
-      "layout": {
-        "depth": 9,
-        "nextdepth": 10
-      },
-      "loc": "0 -845"
-    },
-    {
-      "json": {
-        "name": "ip1",
-        "type": "InnerProduct",
-        "bottom": "pool3",
-        "top": "ip1",
-        "param": [
-          {
-            "lr_mult": 1,
-            "decay_mult": 250
-          },
-          {
-            "lr_mult": 2,
-            "decay_mult": 0
-          }
-        ],
-        "inner_product_param": {
-          "num_output": 10,
-          "weight_filler": {
-            "type": "gaussian",
-            "std": 0.01
-          },
-          "bias_filler": {
-            "type": "constant"
-          }
-        }
-      },
-      "name": "ip1",
-      "top": "ip1",
-      "bottom": "pool3",
-      "type": "InnerProduct",
-      "category": "INNERPRODUCT",
-      "key": "ip1",
-      "layout": {
-        "depth": 10,
-        "nextdepth": 11
-      },
-      "loc": "0 -975"
-    },
-    {
-      "json": {
-        "name": "accuracy",
-        "type": "Accuracy",
-        "bottom": [
-          "ip1",
-          "label"
-        ],
-        "top": "accuracy",
-        "include": {
-          "phase": "TEST"
-        }
-      },
-      "name": "accuracy",
-      "top": "accuracy",
-      "bottom": [
-        "ip1",
-        "label"
-      ],
-      "type": "Accuracy",
-      "category": "LOSS",
-      "key": "accuracy_TEST",
-      "layout": {
-        "depth": 11,
         "nextdepth": 200
       },
-      "loc": "-145 -1105"
-    },
-    {
-      "json": {
-        "name": "loss",
-        "type": "SoftmaxWithLoss",
-        "bottom": [
-          "ip1",
-          "label"
-        ],
-        "top": "loss"
-      },
-      "name": "loss",
-      "top": "loss",
-      "bottom": [
-        "ip1",
-        "label"
-      ],
-      "type": "SoftmaxWithLoss",
-      "category": "LOSS",
-      "key": "loss",
-      "layout": {
-        "depth": 11,
-        "nextdepth": 200
-      },
-      "loc": "55 -1105"
+      "loc": "-45 -195"
     }
   ],
   "linkDataArray": [
     {
       "blob_name": "data",
       "old_name": "data",
-      "from": "cifar_TRAIN",
-      "to": "conv1",
+      "from": "image_input",
+      "to": "conv01",
       "visible": true,
       "fromPort": "T",
       "toPort": "B",
@@ -870,190 +580,26 @@
       "num_output": ""
     },
     {
-      "blob_name": "data",
-      "old_name": "data",
-      "from": "cifar_TEST",
-      "to": "conv1",
+      "blob_name": "conv01",
+      "old_name": "conv01",
+      "from": "conv01",
+      "to": "prelu01",
+      "visible": true,
+      "fromPort": "T",
+      "toPort": "B",
+      "points": [],
+      "num_output": "16"
+    },
+    {
+      "blob_name": "prelu01",
+      "old_name": "prelu01",
+      "from": "prelu01",
+      "to": "pool01",
       "visible": true,
       "fromPort": "T",
       "toPort": "B",
       "points": [],
       "num_output": ""
-    },
-    {
-      "blob_name": "label",
-      "old_name": "label",
-      "from": "cifar_TRAIN",
-      "to": "accuracy_TEST",
-      "visible": true,
-      "fromPort": "L",
-      "toPort": "L",
-      "points": [],
-      "num_output": ""
-    },
-    {
-      "blob_name": "label",
-      "old_name": "label",
-      "from": "cifar_TEST",
-      "to": "accuracy_TEST",
-      "visible": true,
-      "fromPort": "L",
-      "toPort": "L",
-      "points": [],
-      "num_output": ""
-    },
-    {
-      "blob_name": "label",
-      "old_name": "label",
-      "from": "cifar_TRAIN",
-      "to": "loss",
-      "visible": true,
-      "fromPort": "R",
-      "toPort": "R",
-      "points": [],
-      "num_output": ""
-    },
-    {
-      "blob_name": "label",
-      "old_name": "label",
-      "from": "cifar_TEST",
-      "to": "loss",
-      "visible": true,
-      "fromPort": "R",
-      "toPort": "R",
-      "points": [],
-      "num_output": ""
-    },
-    {
-      "blob_name": "conv1",
-      "old_name": "conv1",
-      "from": "conv1",
-      "to": "pool1",
-      "visible": true,
-      "fromPort": "T",
-      "toPort": "B",
-      "points": [],
-      "num_output": "32"
-    },
-    {
-      "blob_name": "pool1",
-      "old_name": "pool1",
-      "from": "pool1",
-      "to": "norm1",
-      "visible": true,
-      "fromPort": "T",
-      "toPort": "B",
-      "text": "ReLU",
-      "relu_data": {
-        "name": "relu1",
-        "type": "ReLU",
-        "bottom": "pool1",
-        "top": "pool1"
-      },
-      "points": [],
-      "num_output": ""
-    },
-    {
-      "blob_name": "norm1",
-      "old_name": "norm1",
-      "from": "norm1",
-      "to": "conv2",
-      "visible": true,
-      "fromPort": "T",
-      "toPort": "B",
-      "points": [],
-      "num_output": ""
-    },
-    {
-      "blob_name": "conv2",
-      "old_name": "conv2",
-      "from": "conv2",
-      "to": "pool2",
-      "visible": true,
-      "fromPort": "T",
-      "toPort": "B",
-      "text": "ReLU",
-      "relu_data": {
-        "name": "relu2",
-        "type": "ReLU",
-        "bottom": "conv2",
-        "top": "conv2"
-      },
-      "points": [],
-      "num_output": "32"
-    },
-    {
-      "blob_name": "pool2",
-      "old_name": "pool2",
-      "from": "pool2",
-      "to": "norm2",
-      "visible": true,
-      "fromPort": "T",
-      "toPort": "B",
-      "points": [],
-      "num_output": ""
-    },
-    {
-      "blob_name": "norm2",
-      "old_name": "norm2",
-      "from": "norm2",
-      "to": "conv3",
-      "visible": true,
-      "fromPort": "T",
-      "toPort": "B",
-      "points": [],
-      "num_output": ""
-    },
-    {
-      "blob_name": "conv3",
-      "old_name": "conv3",
-      "from": "conv3",
-      "to": "pool3",
-      "visible": true,
-      "fromPort": "T",
-      "toPort": "B",
-      "text": "ReLU",
-      "relu_data": {
-        "name": "relu3",
-        "type": "ReLU",
-        "bottom": "conv3",
-        "top": "conv3"
-      },
-      "points": [],
-      "num_output": "64"
-    },
-    {
-      "blob_name": "pool3",
-      "old_name": "pool3",
-      "from": "pool3",
-      "to": "ip1",
-      "visible": true,
-      "fromPort": "T",
-      "toPort": "B",
-      "points": [],
-      "num_output": ""
-    },
-    {
-      "blob_name": "ip1",
-      "old_name": "ip1",
-      "from": "ip1",
-      "to": "accuracy_TEST",
-      "visible": true,
-      "fromPort": "T",
-      "toPort": "B",
-      "points": [],
-      "num_output": "10"
-    },
-    {
-      "blob_name": "ip1",
-      "old_name": "ip1",
-      "from": "ip1",
-      "to": "loss",
-      "visible": true,
-      "fromPort": "T",
-      "toPort": "B",
-      "points": [],
-      "num_output": "10"
     }
   ]
 }
