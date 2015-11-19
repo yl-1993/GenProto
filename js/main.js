@@ -15,6 +15,7 @@ function init() {
         "ChangedSelection": onSelectionChanged,
         "TextEdited": onTextEdited,
         mouseOver: doMouseOver,
+        initialAutoScale: go.Diagram.Uniform,
         "undoManager.isEnabled": true // enable undo & redo
       });
 
