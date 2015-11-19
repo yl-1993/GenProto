@@ -972,6 +972,18 @@ layer {
 
 '*/});
 
+
+function changeSNStage() {
+  var _stagenum = parseInt(document.getElementById('stages').value);
+  var _bn_stage = "0";
+  var i;
+  for (i = 1; i < _stagenum; ++i) {
+    _bn_stage += ";" + i;
+  }
+  document.getElementById('sn_bn_stage').value = _bn_stage;
+}
+
+
 function changeSNPanel() {
   'use strict'
   var _type = document.getElementById('sn_unit_type').value;
@@ -986,14 +998,18 @@ function changeSNPanel() {
   }
 
   var _isbn = document.getElementById('sn_bn').value;
-  if (_isbn == "1") _type += "_bn";
+  if (_isbn == "1") {
+    document.getElementById('sn_bn_stage').style.display = "block";
+  } else {
+    document.getElementById('sn_bn_stage').style.display = "none";
+  }
   var _pool_method = document.getElementById('sn_pool_method').value; 
   var _inception_method = document.getElementById('sn_inception_type').value;
   var _unit_setting = "";
   var _stage = {0:[16]};
   var _unit_setting = gen_structured_unit(_stage, _type, _isbn, _pool_method, _inception_method);
 
-  document.getElementById("prototxt").value = DATA_LAYER_TEMPLATE+_unit_setting;
+  document.getElementById("prototxt").value = DATA_LAYER_TEMPLATE+_unit_setting._common_layer;
   editor_proto.setValue(document.getElementById("prototxt").value);
   gen_model();
 }
@@ -1040,10 +1056,11 @@ function gen_structured_unit(_stage, _type, _isbn, _pool_method, _inception_meth
   var i, j;
   var _tmp_str;
   var _bottom, _top, _channel;
-  var _stat = get_common_template(_type);
   var _idx, _count, _name, _num_output, _length;
   var _channel01, _channel02, _channel03, _channel04;
-  
+
+  if (_isbn == "1") _type += "_bn";
+  var _stat = get_common_template(_type);  
   var _common_template = _stat["template"];
   var _name_pattern = _stat["name"];
   var _output_pattern = _stat["output"];
@@ -1092,12 +1109,93 @@ function gen_structured_unit(_stage, _type, _isbn, _pool_method, _inception_meth
     _bottom = "pool"+_name;
     _common_layer += _tmp_str.replace(/#%#NAME#%#/g, _name)
   }
-  return _common_layer;
+  return {
+    "_common_layer": _common_layer,
+    "_bottom": _bottom
+  };
 }
+
+
+function gen_bn_structured_unit(_stage, _type, _isbn, _bn_stage, _pool_method, _inception_method) {
+  var i, j;
+  var _tmp_str;
+  var _bottom, _top, _channel;
+  var _stat;
+  var _idx, _count, _name, _num_output, _length;
+  var _channel01, _channel02, _channel03, _channel04;
+  
+  var _common_template;
+  var _name_pattern;
+  var _output_pattern;
+
+  var _common_layer = '';
+
+
+  _bottom = "data"
+  for(_idx in _stage) {
+    if (_bn_stage.contains(_idx)) {
+      _stat = get_common_template(_type+"_bn");
+      console.log(_stat)
+      _common_template = _stat["template"];
+      _name_pattern = _stat["name"];
+      _output_pattern = _stat["output"];
+    } else {
+      _stat = get_common_template(_type);
+      _common_template = _stat["template"];
+      _name_pattern = _stat["name"];
+      _output_pattern = _stat["output"];
+    }
+    _length = _stage[_idx].length;
+    for(_count = 1; _count <= _length; ++_count) {
+      _name = '' + _idx + _count;
+      _channel = _stage[_idx][_count-1];
+      _tmp_str = _common_template.replace(/#%#BOTTOM#%#/g, _bottom);
+      _tmp_str = _tmp_str.replace(/#%#NAME#%#/g, _name);
+      if (_type == 'conv' || _type == 'conv_bn') {
+        _tmp_str = _tmp_str.replace(/#%#CHANNELS#%#/g, _channel);
+      } else if (_type == 'inception_bn' || _type == 'inception' || _type == 'inception_mb') {
+        if (_inception_method == 'up') {
+          _channel01 = _channel/8;
+          _channel02 = _channel/4;
+          _channel03 = _channel/2;
+          _channel04 = _channel/8;
+        } else if (_inception_method == 'down') {
+          _channel01 = _channel/2;
+          _channel02 = _channel/4;
+          _channel03 = _channel/8;
+          _channel04 = _channel/8;          
+        } else {
+          _channel01 = _channel/4;
+          _channel02 = _channel/4;
+          _channel03 = _channel/4;
+          _channel04 = _channel/4;            
+        }
+
+        _tmp_str = _tmp_str.replace(/#%#CHANNEL1#%#/g, _channel01);
+        _tmp_str = _tmp_str.replace(/#%#CHANNEL2#%#/g, _channel02);
+        _tmp_str = _tmp_str.replace(/#%#CHANNEL3#%#/g, _channel03);
+        _tmp_str = _tmp_str.replace(/#%#CHANNEL4#%#/g, _channel04);
+      }
+
+      _common_layer += _tmp_str;
+      _bottom = _output_pattern+_name;
+    }
+    _tmp_str = STAGE_SPLIT_TEMPLATE.replace(/#%#BOTTOM#%#/g, _output_pattern+_name);
+    _tmp_str = _tmp_str.replace(/#%#POOLMETHOD#%#/g, _pool_method)
+    _bottom = "pool"+_name;
+    _common_layer += _tmp_str.replace(/#%#NAME#%#/g, _name)
+  }
+  return {
+    "_common_layer": _common_layer,
+    "_bottom": _bottom
+  };
+}
+
 
 function gen_structured_network() {
   'use strict'
-  var i;
+  var i, j;
+  var _res;
 	var _network = '';
 	var _data_layer = '';
   var _common_layer = '';
@@ -1105,6 +1203,7 @@ function gen_structured_network() {
   var _type = ''
   var _isbn = '';
   var _stage = {};
+  var _bn_stage = [];
 
   var _stages_from_ui = document.getElementById('stages').value;
   var _filters_from_ui = document.getElementById('filters').value;
@@ -1125,13 +1224,24 @@ function gen_structured_network() {
 
   _type = document.getElementById('sn_unit_type').value;
   _isbn = document.getElementById('sn_bn').value;
-  if (_isbn == "1") _type += "_bn";
+
   var _pool_method = document.getElementById('sn_pool_method').value; 
   var _inception_method = document.getElementById('sn_inception_type').value;
 
   _data_layer = DATA_LAYER_TEMPLATE;
-  _common_layer = gen_structured_unit(_stage, _type, _isbn, _pool_method, _inception_method);
-  _loss_layer = LOSS_LAYER_TEMPLATE.replace("#%#BOTTOM#%#", _bottom);
+  if (_isbn == "1") {
+    _bn_stage = document.getElementById('sn_bn_stage').value;
+    _bn_stage = _bn_stage.split(";");
+    if (_bn_stage.length == _stages_from_ui) {
+      _res = gen_structured_unit(_stage, _type, _isbn, _pool_method, _inception_method);
+    } else {
+      _res = gen_bn_structured_unit(_stage, _type, _isbn, _bn_stage, _pool_method, _inception_method);
+    }
+  } else {
+    _res = gen_structured_unit(_stage, _type, _isbn, _pool_method, _inception_method);
+  }
+  _common_layer = _res._common_layer;
+  _loss_layer = LOSS_LAYER_TEMPLATE.replace("#%#BOTTOM#%#", _res._bottom);
   _network = _data_layer+_common_layer+_loss_layer;
 
 	document.getElementById("prototxt").value = _network;

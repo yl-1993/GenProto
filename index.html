@@ -358,7 +358,8 @@
         <hr />
         <table>
           <tr>
-            <td>#stage: <input id="stages" type="text" min="1" placeholder="4" value="4" /></td>
+            <td>#stage: <input id="stages" type="number" min="1" style="width:50px;" 
+              placeholder="4" value="4" onchange="changeSNStage()"/></td>
           </tr>
           <tr>
             <td>#filter in each stage:<br/>(splitted by ','and';')</td>
@@ -382,6 +383,8 @@
                 <option value ="0">No</option>
                 <option value ="1">Yes</option>
               </select>
+              <input id="sn_bn_stage" type="text" style="width:80px;display:none;"
+              placeholder="0;1;2;3" value="0;1;2;3"/>
             </td>
           </tr>
           <tr>
