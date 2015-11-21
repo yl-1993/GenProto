@@ -132,3 +132,32 @@ function remove_bn_layers(_node_data_array, _link_data_array, _model) {
   //_model["linkDataArray"] = myDiagram.model["linkDataArray"];
   return _model.toJson();
 }
+
+
+function add_lr_zero_layers(_node_data_array, _model) {
+  'use strict';
+  var i;
+  var _count = 0;
+  var _node_data_num = _node_data_array.length;
+  for (i = 0; i < _node_data_num; ++i) {
+    if (_node_data_array[i].type == "Convolution" || _node_data_array[i].type == "ConvolutionData" 
+      || _node_data_array[i].type == "InnerProduct" || _node_data_array[i].type == "InnerProductData" ) {
+      if (!_node_data_array[i].json.param) {
+        _node_data_array[i].json.param = [];
+        _node_data_array[i].json.param[0] = {};
+        _node_data_array[i].json.param[1] = {};
+      }
+      _node_data_array[i].json.param[0].lr_mult = 0;
+      _node_data_array[i].json.param[0].decay_mult = 0;
+      _node_data_array[i].json.param[1].lr_mult = 0;
+      _node_data_array[i].json.param[1].decay_mult = 0;
+      _count += 1;
+    }
+  }
+
+  showSuccessToast("Add mult_lr=0 and decay_mult=0 to "+_count+" layers!");
+
+  _model["nodeDataArray"] = _node_data_array;
+  return _model.toJson();
+
+}

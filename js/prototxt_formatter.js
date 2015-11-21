@@ -37,8 +37,12 @@ var json_obj2prototxt = function(obj, indent, tips) {
         }
       }
     } else {
-        if (obj[key] != "" || tips) {
+        if (obj[key] !== "" || tips) {
           res += spaces(indent + 1) + key + " : " + add_quote(obj[key]) + "\n";
+        } else {
+          console.log(key)
+          console.log(obj[key])
+          console.log(tips)
         }
     }
   }
@@ -50,7 +54,8 @@ var add_quote = function(z) {
   'use strict';
   if (isNaN(parseFloat(z))) {
     if (z == "TRAIN" || z == "TEST" || z == "LMDB" || z == "LEVEL_DB" || 
-      z == "MAX" || z == "AVE" || z === true || z === false) {
+      z == "MAX" || z == "AVE" || z =="FAN_OUT" || z == "FAN_IN" ||
+      z === true || z === false) {
       return z;
     } else {
       return "\"" + z + "\"";

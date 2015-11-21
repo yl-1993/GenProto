@@ -254,6 +254,12 @@
     document.getElementById("mySavedModel").value = remove_bn_layers(_model["nodeDataArray"], _model["linkDataArray"], _model);
     load();
   }
+  function add_lr_zero() {
+    var _struct_json = document.getElementById("mySavedModel").value;
+    var _model = go.Model.fromJson(_struct_json);
+    document.getElementById("mySavedModel").value = add_lr_zero_layers(_model["nodeDataArray"], _model);
+    load();    
+  }
 </script>
 <script type="text/javascript" src="data.json"></script>
 <script>
@@ -286,7 +292,7 @@
     </span>
 
     <span style="display: inline-block; vertical-align: top; padding: 5px; width:50%">
-      <div id="myDiagram" style="border: solid 1px gray; height: 720px"></div>
+      <div id="myDiagram" style="border: solid 1px gray; height: 950px"></div>
       <div id="infoBoxHolder">
         <!-- Initially Empty, it is populated when updateInfoBox is called -->
       </div>
@@ -320,6 +326,7 @@
           </tr>
           <tr>
             <td><button onclick="rm_bn();">Remove BN</button></td>
+            <td><button onclick="add_lr_zero();">Add lr=0</button></td>
           </tr>
         </table>
         <div style="margin-top: 10px;">
