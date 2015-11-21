@@ -138,7 +138,7 @@ function compute_layer_size(cur_top, w, h, c, model_size, calculation) {
   'use strict';
   var i;
   var top_node;
-  var num_output, kernel_size, stride, pad;
+  var num_output, kernel_size, stride, pad, kernel_h, kernel_w;
   for (i = 0; i < cur_top.length; ++i) {
     top_node = myDiagram.model.findNodeDataForKey(cur_top[i]);
     if(!top_node) {
@@ -164,14 +164,20 @@ function compute_layer_size(cur_top, w, h, c, model_size, calculation) {
       if (top_node.type == "Convolution" || top_node.type == "ConvolutionData") {
         num_output = parseInt(top_node.json.convolution_param.num_output);
         kernel_size = parseInt(top_node.json.convolution_param.kernel_size);
+        kernel_h = parseInt(top_node.json.convolution_param.kernel_h);
+        kernel_w = parseInt(top_node.json.convolution_param.kernel_w);
         stride = parseInt(top_node.json.convolution_param.stride || 1);
         pad = parseInt(top_node.json.convolution_param.pad || 0);
-        if (num_output && kernel_size && stride) {
-          top_node.stat.w = Math.floor((w + 2*pad - kernel_size)*1.0 / stride) + 1;
-          top_node.stat.h = Math.floor((h + 2*pad - kernel_size)*1.0 / stride) + 1;
+        if (!kernel_h && !kernel_w && kernel_size) {
+          kernel_h = kernel_size;
+          kernel_w = kernel_size;
+        }
+        if (num_output && stride && kernel_h && kernel_w ) {
+          top_node.stat.w = Math.floor((w + 2*pad - kernel_w)*1.0 / stride) + 1;
+          top_node.stat.h = Math.floor((h + 2*pad - kernel_h)*1.0 / stride) + 1;
           top_node.stat.c = num_output;
-          top_node.stat.model_size = c*(kernel_size*kernel_size)*num_output;
-          top_node.stat.calculation = w*h*c*(kernel_size*kernel_size)*num_output;
+          top_node.stat.model_size = c*(kernel_h*kernel_w)*num_output;
+          top_node.stat.calculation = top_node.stat.w*top_node.stat.h*c*(kernel_h*kernel_w)*num_output;
         } else {
           showErrorToast("Some parameters are lost! Please check layer: " + top_node.name);
           return 0;
@@ -190,11 +196,17 @@ function compute_layer_size(cur_top, w, h, c, model_size, calculation) {
         }
       } else if (top_node.type == "Pooling") {
         kernel_size = parseInt(top_node.json.pooling_param.kernel_size);
+        kernel_h = parseInt(top_node.json.pooling_param.kernel_h);
+        kernel_w = parseInt(top_node.json.pooling_param.kernel_w);
         stride = parseInt(top_node.json.pooling_param.stride || 1);
         pad = parseInt(top_node.json.pooling_param.pad || 0);
-        if (kernel_size && stride) {
-          top_node.stat.w = Math.ceil((w + 2*pad - kernel_size)*1.0 / stride) + 1;
-          top_node.stat.h = Math.ceil((h + 2*pad - kernel_size)*1.0 / stride) + 1;
+        if (!kernel_h && !kernel_w && kernel_size) {
+          kernel_h = kernel_size;
+          kernel_w = kernel_size;
+        }        
+        if (kernel_h && kernel_w && stride) {
+          top_node.stat.w = Math.ceil((w + 2*pad - kernel_w)*1.0 / stride) + 1;
+          top_node.stat.h = Math.ceil((h + 2*pad - kernel_h)*1.0 / stride) + 1;
           top_node.stat.c = c;
           top_node.stat.model_size = 0;
           top_node.stat.calculation = 0;
