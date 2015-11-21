@@ -273,7 +273,7 @@ var generate_link = function(nodes) {
           old_name: blob.old_name,
           from: blob.from[j],
           to: blob.to[i],
-          visible: true,
+          visible: false,
           fromPort: 'T',
           toPort: 'B'
         };
