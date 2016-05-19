@@ -199,6 +199,9 @@ var generate_link = function(nodes) {
     }
     if (nodes[i].type == 'Dropout' && nodes[i].top == nodes[i].bottom) {
       continue;
+    }  
+    if ((nodes[i].type == 'BN'||nodes[i].type == 'BNData') && nodes[i].top == nodes[i].bottom) {
+      continue;
     }    
     if (nodes[i].top && (nodes[i].top instanceof Array)) {
       // 2 or more tops
@@ -235,6 +238,9 @@ var generate_link = function(nodes) {
     if (nodes[i].type == 'Dropout' && nodes[i].top == nodes[i].bottom) {
       continue;
     }
+    if ((nodes[i].type == 'BN' || nodes[i].type == 'BNData') && nodes[i].top == nodes[i].bottom) {
+      continue;
+    }
     if (nodes[i].bottom && (nodes[i].bottom instanceof Array)) {
       for (j = 0; j < nodes[i].bottom.length; j += 1) {
         if (blobs[nodes[i].bottom[j]]) {
@@ -259,6 +265,15 @@ var generate_link = function(nodes) {
           blobs[nodes[i].top].text = "ReLU&Dropout";
         } else {
           blobs[nodes[i].top].text = "Dropout";
+        }
+      }
+    }
+    if ((nodes[i].type == 'BN'||nodes[i].type == 'BNData') && nodes[i].top == nodes[i].bottom) {
+      if (blobs[nodes[i].top]) {
+        if (blobs[nodes[i].top].text == "ReLU") {
+          blobs[nodes[i].top].text = "ReLU&BN";
+        } else {
+          blobs[nodes[i].top].text = "BN";
         }
       }
     }
@@ -337,6 +352,12 @@ var removeReluLayer = function(nodes, links) {
     if (nodes[i].type == 'Dropout' && nodes[i].top == nodes[i].bottom) {
       if(link_hash[nodes[i].top]){
         link_hash[nodes[i].top].dropout_data = nodes[i].json;
+      }
+      continue;
+    }
+    if ((nodes[i].type == 'BN' || nodes[i].type == 'BNData') && nodes[i].top == nodes[i].bottom) {
+      if(link_hash[nodes[i].top]){
+        link_hash[nodes[i].top].bn_data = nodes[i].json;
       }
       continue;
     }

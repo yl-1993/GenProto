@@ -86,6 +86,11 @@ function save_prototxt(_model) {
         break;
       }
       if(_link_data_array[j].from == _node_data_array[i].name 
+        && (_link_data_array[j].text == "BN" || _link_data_array[j].text == "BNData")){
+        prototxt += json2prototxt_layer(_link_data_array[j].relu_data, false);
+        break;
+      }
+      if(_link_data_array[j].from == _node_data_array[i].name 
         && _link_data_array[j].text == "Dropout"){
         prototxt += json2prototxt_layer(_link_data_array[j].dropout_data, false);
         break;
