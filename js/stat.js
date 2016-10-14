@@ -258,15 +258,17 @@ function get_topology_struct(_bottom_list, _node_map, _node_dict, _node_num) {
       count += 1;
       continue;
     }
+    top_node = top_node.unique()
     // push
     for (i = 0; i < top_node.length; ++i) {
       if (_node_dict[top_node[i]] == 0) {      
         stack.push(top_node[i]);
         _node_dict[top_node[i]] = 1;
       } else if (_node_dict[top_node[i]] == 1) { // check whether there is a loop
-        showErrorToast("There is a loop! Please check layer: "+top_node[i]);
-        throw "There is a loop! Please check layer: "+top_node[i];
-        return;
+        //showErrorToast("There is a loop! Please check layer: "+top_node[i]);
+        //throw "There is a loop! Please check layer: "+top_node[i];
+        //return;
+        console.log("There may exist a loop! Please check layer: "+top_node[i])
       } else {
         continue;
       }
